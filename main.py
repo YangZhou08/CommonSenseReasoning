@@ -134,7 +134,9 @@ for task in tasks:
     promptids = tokenizer(cotprompt, return_tensors = "pt", truncation = True, padding = False)["input_ids"] 
     promptids = torch.tensor(promptids, dtype = torch.long).unsqueeze(0) 
     for batch in dataloader: 
-        input_ids = batch["input_ids"].unsqueeze(0) 
+        input_ids = batch["input_ids"] 
+        print("length of input_ids: ", len(input_ids)) 
+        input_ids = torch.tensor(input_ids, dtype = torch.long).unsqueeze(0) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(model.device) 
         stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
