@@ -41,21 +41,21 @@ def get_dataset(datasetname):
         def encodewithtokenizer(example): 
             options = example["choices"]["text"] 
             inputtext = "Q: {}\nOptions: (a) {} (b) {} (c) {} (d) {} (e) {}\nA:".format(example["question"], options[0], options[1], options[2], options[3], options[4]) 
-            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False) 
+            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
         print("length of dataset: ", len(dataset)) 
     elif datasetname == "strategyqa": 
         dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation") 
         def encodewithtokenizer(example): 
             inputtext = "Q: Yes or No: {}".format(example["inputs"][3 :]) 
-            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False) 
+            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     elif datasetname == "date": 
         dataset = load_dataset("tasksource/bigbench", "date_understanding") 
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
         def encodewithtokenizer(example): 
             inputtext = example["inputs"] 
-            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False) 
+            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
         dataset = dataset[10: ] 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     elif datasetname == "sports": 
@@ -63,7 +63,7 @@ def get_dataset(datasetname):
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
         def encodewithtokenizer(example): 
             inputtext = "Q: {}".format(example["inputs"]) 
-            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False) 
+            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
         dataset = dataset[10: ] 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     else: 
