@@ -148,7 +148,9 @@ for task in tasks:
         print("start generating") 
         outputs = model.generate(
             input_ids = input_ids, 
+            attention_mask = None, 
             max_length = input_ids.shape[1] + 20, 
+            use_cache = True, 
             # stopping_criteria = stop_criteria, 
             # pad_token_id = tokenizer.pad_token_id, 
             do_sample = False, 
