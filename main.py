@@ -138,7 +138,7 @@ for task in tasks:
         input_ids = batch["input_ids"] 
         print("length of input_ids: ", len(input_ids)) 
         print("length of input_ids[0]: ", len(input_ids[0])) 
-        input_ids = torch.tensor(input_ids, dtype = torch.long).unsqueeze(0) 
+        input_ids = torch.tensor(input_ids, dtype = torch.long) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(model.device) 
         stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
