@@ -19,7 +19,7 @@ args = parser.parse_args()
 tasks = args.tasks.split(",") 
 
 ### Loading the tokenizer and the model ### 
-tokenizer = AutoTokenizer.from_pretrained(args.model) 
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct") 
 if tokenizer.pad_token is not None: 
     print("tokenizer has pad token {}".format(tokenizer.pad_token)) 
 else: 
