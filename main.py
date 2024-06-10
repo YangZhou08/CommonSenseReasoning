@@ -143,7 +143,7 @@ for task in tasks:
         print("shape of input_ids {}".format(input_ids.shape)) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(model.device) 
-        stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
+        stop_criteria = stop_sequences_criteria(tokenizer, "Q: ", input_ids.shape[1], input_ids.shape[0]) 
         
         print("start generating") 
         outputs = model.generate(
@@ -152,7 +152,7 @@ for task in tasks:
             # max_length = input_ids.shape[1] + 20, 
             max_length = input_ids.shape[1] + 200, 
             use_cache = True, 
-            # stopping_criteria = stop_criteria, 
+            stopping_criteria = stop_criteria, 
             # pad_token_id = tokenizer.pad_token_id, 
             do_sample = False, 
         ) 
