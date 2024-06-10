@@ -141,7 +141,7 @@ for task in tasks:
         print("length of input_ids[0]: ", len(input_ids[0])) 
         input_ids = torch.tensor(input_ids, dtype = torch.long) 
         print("shape of input_ids {}".format(input_ids.shape)) 
-        # input_ids = torch.cat([promptids, input_ids], dim = 1) 
+        input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(model.device) 
         stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
         
@@ -150,7 +150,7 @@ for task in tasks:
             input_ids = input_ids, 
             attention_mask = None, 
             # max_length = input_ids.shape[1] + 20, 
-            max_length = 100, 
+            max_length = input_ids.shape[1] + 200, 
             use_cache = True, 
             # stopping_criteria = stop_criteria, 
             # pad_token_id = tokenizer.pad_token_id, 
