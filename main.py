@@ -131,7 +131,7 @@ def stop_sequences_criteria(
 
 for task in tasks: 
     dataloader, cotprompt = get_dataset(task) 
-    promptids = tokenizer(cotprompt, return_tensor = "pt", truncation = True, padding = False)["input_ids"] 
+    promptids = tokenizer(cotprompt, return_tensors = "pt", truncation = True, padding = False)["input_ids"] 
     for batch in dataloader: 
         input_ids = batch["input_ids"] 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
