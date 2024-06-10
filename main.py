@@ -43,6 +43,7 @@ def get_dataset(datasetname):
             inputtext = "Q: {}\nOptions: (a) {} (b) {} (c) {} (d) {} (e) {}\nA:".format(example["question"], options[0], options[1], options[2], options[3], options[4]) 
             return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
+        print("length of dataset: ", len(dataset)) 
     elif datasetname == "strategyqa": 
         dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation") 
         def encodewithtokenizer(example): 
@@ -136,6 +137,7 @@ for task in tasks:
     for batch in dataloader: 
         input_ids = batch["input_ids"] 
         print("length of input_ids: ", len(input_ids)) 
+        print("length of input_ids[0]: ", len(input_ids[0])) 
         input_ids = torch.tensor(input_ids, dtype = torch.long).unsqueeze(0) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(model.device) 
