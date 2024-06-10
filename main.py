@@ -145,11 +145,12 @@ for task in tasks:
         input_ids = input_ids.to(model.device) 
         stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
         
+        print("start generating") 
         outputs = model.generate(
             input_ids = input_ids, 
             max_length = input_ids.shape[1] + 20, 
             # stopping_criteria = stop_criteria, 
-            pad_token_id = tokenizer.pad_token_id, 
+            # pad_token_id = tokenizer.pad_token_id, 
             do_sample = False, 
         ) 
         print("finished") 
