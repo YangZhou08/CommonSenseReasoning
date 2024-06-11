@@ -181,6 +181,7 @@ for task in tasks:
         # exit(0) 
         input_ids = batch["input_ids"] 
         input_ids = torch.tensor(input_ids, dtype = torch.long) 
+        input_ids = input_ids.to(args.device) 
         print(tokenizer.decode(input_ids[0])) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(model.device) 
