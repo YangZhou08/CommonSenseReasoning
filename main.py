@@ -146,7 +146,7 @@ def criteriaoutput(datasetname, outputs, expectedanswer):
             print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
         else: 
             print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
-        return answer == expectedanswer 
+        return int(answer == expectedanswer) 
     elif datasetname == "strategyqa": 
         pass 
     elif datasetname == "date": 
@@ -160,12 +160,15 @@ for task in tasks:
     dataloader, cotprompt = get_dataset(task) 
     promptids = tokenizer(cotprompt, return_tensors = "pt", truncation = True, padding = False)["input_ids"] 
     promptids = torch.tensor(promptids, dtype = torch.long) 
+    totalexamples = 0 
+    correctanswers = 0 
     for batch in dataloader: 
         # print("answer found {}".format("answerKey" in batch.keys())) 
         # print(batch["answerKey"][0]) 
         # print(len(batch["answerKey"])) 
         # exit(0) 
         input_ids = batch["input_ids"] 
+        print(tokenizer.decode(input_ids[0])) 
         input_ids = torch.tensor(input_ids, dtype = torch.long) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(model.device) 
@@ -181,8 +184,11 @@ for task in tasks:
             # pad_token_id = tokenizer.pad_token_id, 
             do_sample = False, 
         ) 
-        print(tokenizer.decode(outputs[0])) 
+        # print(tokenizer.decode(outputs[0])) 
+        print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
         generatedtext = tokenizer.decode(outputs[0][input_ids.shape[1] :]) 
         checkcriteria = criteriaoutput(task, outputs[0][input_ids.shape[1] :], batch["answerKey"][0].lower()) 
-        break 
+        totalexamples += 1 
+        correctanswers += checkcriteria 
+        print("Total examples: {} Correct answers: {}".format(totalexamples, correctanswers)) 
         
