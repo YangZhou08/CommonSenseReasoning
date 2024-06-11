@@ -24,7 +24,8 @@ parser.add_argument("--limit", type = int, default = None)
 accelerator = Accelerator() 
 
 # Check if we are in a distributed setup
-is_distributed = accelerator.distributed_type != "NO"
+is_distributed = accelerator.distributed_type != "NO" 
+print("is_distributed {}".format(is_distributed)) 
 
 args = parser.parse_args() 
 tasks = args.tasks.split(",") 
