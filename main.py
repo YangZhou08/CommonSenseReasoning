@@ -140,6 +140,10 @@ for task in tasks:
     promptids = torch.tensor(promptids, dtype = torch.long) 
     print("shape of promptids {}".format(promptids.shape)) 
     for batch in dataloader: 
+        print("answer found {}".format("answerKey" in batch.keys())) 
+        print(batch["answerKey"]) 
+        print(len(batch["answerKey"])) 
+        exit(0) 
         input_ids = batch["input_ids"] 
         print("length of input_ids: ", len(input_ids)) 
         print("length of input_ids[0]: ", len(input_ids[0])) 
@@ -170,9 +174,6 @@ for task in tasks:
         print(generatedtext[indexpinned : indexperiod]) 
         # answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
         answer = generatedtext[indexperiod - 3 : indexperiod] 
-        print("answer found {}".format("answerKey" in batch.keys())) 
-        print(batch["answerKey"]) 
-        print(len(batch["answerKey"])) 
         print(colored("Answer {} expected {}".format(answer[1], batch["answerKey"][0]), "red")) 
         break 
         
