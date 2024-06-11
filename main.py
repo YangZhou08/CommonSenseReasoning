@@ -153,7 +153,7 @@ for task in tasks:
             # max_length = input_ids.shape[1] + 20, 
             max_length = input_ids.shape[1] + 200, 
             use_cache = True, 
-            stopping_criteria = stop_criteria, 
+            # stopping_criteria = stop_criteria, 
             # pad_token_id = tokenizer.pad_token_id, 
             do_sample = False, 
         ) 
