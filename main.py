@@ -161,9 +161,11 @@ for task in tasks:
             do_sample = False, 
         ) 
         print("finished") 
-        generatedtext = tokenizer.decode(outputs[0]) 
+        print(tokenizer.decode(outputs[0])) 
+        generatedtext = tokenizer.decode(outputs[0][input_ids.shape[1] :]) 
         print(generatedtext) 
         indexpinned = generatedtext.find("So the answer is ") 
+        print("indexpinned {}".format(indexpinned)) 
         print(generatedtext[indexpinned : ]) 
         break 
         
