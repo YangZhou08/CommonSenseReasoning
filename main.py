@@ -201,6 +201,7 @@ def criteriaoutput(datasetname, outputs, inputexample):
         else: 
             segsanswer = answer.split("/") 
             segsexpectedanswer = expectedanswer.split("/") 
+            print("length of answer {} expected {}".format(len(segsanswer), len(segsexpectedanswer))) 
             if len(segsanswer) != len(expectedanswer): 
                 resultoutput = False 
             else: 
