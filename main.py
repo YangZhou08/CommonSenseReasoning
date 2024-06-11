@@ -200,7 +200,22 @@ def criteriaoutput(datasetname, outputs, inputexample):
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
             else: 
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
-        return int(answer == expectedanswer) 
+        resultoutput = False 
+        if answer == expectedanswer: 
+            resultoutput = True 
+        else: 
+            segsanswer = answer.split("/") 
+            segsexpectedanswer = expectedanswer.split("/") 
+            assert len(segsanswer) == len(segsexpectedanswer) 
+            accumulate = True 
+            for i in range(3): 
+                if segsexpectedanswer[i][0] == '0': 
+                    segsexpectedanswer[i] = segsexpectedanswer[i][1 : ] 
+                if segsanswer[i][0] == '0': 
+                    segsanswer[i] = segsanswer[i][1 : ] 
+                accumulate = accumulate and (segsanswer[i] == segsexpectedanswer[i]) 
+            resultoutput = accumulate 
+        return int(resultoutput) 
     elif datasetname == "sports": 
         expectedanswer = inputexample["targets"][0][0] 
         generatedtext = tokenizer.decode(outputs) 
