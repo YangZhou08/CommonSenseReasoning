@@ -229,18 +229,28 @@ for task in tasks:
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(args.device) 
         stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
-        
-        outputs = model.module.generate(
-            input_ids = input_ids, 
-            attention_mask = None, 
-            # max_length = input_ids.shape[1] + 20, 
-            max_length = input_ids.shape[1] + 200, 
-            use_cache = True, 
-            stopping_criteria = stop_criteria, 
-            pad_token_id = tokenizer.pad_token_id, 
-            do_sample = False, 
-            # past_key_values = kv_cache, 
-        ) 
+        if is_distributed: 
+            outputs = model.module.generate(
+                input_ids = input_ids, 
+                attention_mask = None, 
+                # max_length = input_ids.shape[1] + 20, 
+                max_length = input_ids.shape[1] + 200, 
+                use_cache = True, 
+                stopping_criteria = stop_criteria, 
+                pad_token_id = tokenizer.pad_token_id, 
+                do_sample = False, 
+                # past_key_values = kv_cache, 
+            ) 
+        else: 
+            outputs = model.generate(
+                input_ids = input_ids, 
+                attention_mask = None, 
+                max_length = input_ids.shape[1] + 200, 
+                use_cache = True, 
+                stopping_criteria = stop_criteria, 
+                pad_token_id = tokenizer.pad_token_id, 
+                do_sample = False, 
+            ) 
         # print(tokenizer.decode(outputs[0])) 
         if accelerator.is_main_process: 
             print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
