@@ -294,7 +294,6 @@ for task in tasks:
                 pad_token_id = tokenizer.pad_token_id, 
                 do_sample = False, 
             ) 
-        print("length generated {}".format(outputs[0].shape[-1] - input_ids.shape[1])) 
         # print(tokenizer.decode(outputs[0])) 
         if accelerator.is_main_process: 
             print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
