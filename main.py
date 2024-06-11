@@ -162,8 +162,9 @@ def stop_sequences_criteria(
         ]
     ) 
 
-def criteriaoutput(datasetname, outputs, expectedanswer): 
+def criteriaoutput(datasetname, outputs, inputexample): 
     if datasetname == "csqa": 
+        expectedanswer = inputexample["answerKey"][0].lower() 
         generatedtext = tokenizer.decode(outputs) 
         indexpinned = generatedtext.find("So the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
@@ -177,7 +178,17 @@ def criteriaoutput(datasetname, outputs, expectedanswer):
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
         return int(answer == expectedanswer) 
     elif datasetname == "strategyqa": 
-        pass 
+        expectedanswer = inputexample["multiple_choice_targets"][inputexample["multiple_choice_scores"].index(1)] 
+        generatedtext = tokenizer.decode(outputs) 
+        indexpinned = generatedtext.find("So the answer is ") 
+        indexperiod = generatedtext.find(".", indexpinned) 
+        answer = generatedtext[indexpinned + len("So the answer is ") : indexpinned] 
+        if accelerator.is_main_process: 
+            if answer == expectedanswer: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
+            else: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
+        return int(answer == expectedanswer) 
     elif datasetname == "date": 
         pass 
     elif datasetname == "sports": 
@@ -234,7 +245,7 @@ for task in tasks:
         if accelerator.is_main_process: 
             print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
         generatedtext = tokenizer.decode(outputs[0][input_ids.shape[1] :]) 
-        checkcriteria = criteriaoutput(task, outputs[0][input_ids.shape[1] :], batch["answerKey"][0].lower()) 
+        checkcriteria = criteriaoutput(task, outputs[0][input_ids.shape[1] :], batch) 
         totalexamples += 1 
         correctanswers += checkcriteria 
         if accelerator.is_main_process: 
