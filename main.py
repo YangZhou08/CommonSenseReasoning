@@ -162,6 +162,14 @@ for task in tasks:
     promptids = torch.tensor(promptids, dtype = torch.long) 
     totalexamples = 0 
     correctanswers = 0 
+    
+    # make the kv cache 
+    outputs = model(
+        input_ids = promptids, 
+        use_cache = True, 
+        return_dict = True, 
+    ) 
+    kv_cache = outputs.past_key_values 
     for i, batch in tqdm(enumerate(dataloader)): 
         # print("answer found {}".format("answerKey" in batch.keys())) 
         # print(batch["answerKey"][0]) 
@@ -170,7 +178,7 @@ for task in tasks:
         input_ids = batch["input_ids"] 
         input_ids = torch.tensor(input_ids, dtype = torch.long) 
         print(tokenizer.decode(input_ids[0])) 
-        input_ids = torch.cat([promptids, input_ids], dim = 1) 
+        # input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(model.device) 
         stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
         
@@ -183,6 +191,7 @@ for task in tasks:
             stopping_criteria = stop_criteria, 
             pad_token_id = tokenizer.pad_token_id, 
             do_sample = False, 
+            past_key_values = kv_cache, 
         ) 
         # print(tokenizer.decode(outputs[0])) 
         print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
