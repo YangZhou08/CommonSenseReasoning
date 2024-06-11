@@ -1,5 +1,6 @@
 import torch 
 from torch.utils.data.distributed import DistributedSampler 
+import torch.distributed as dist 
 import transformers 
 from accelerate import Accelerator 
 import lm_eval 
@@ -178,6 +179,7 @@ def criteriaoutput(datasetname, outputs, expectedanswer):
         raise ValueError("Unknown dataset {}".format(datasetname)) 
 
 print("tasks {}".format(tasks)) 
+countaccum = {} 
 for task in tasks: 
     # dataloader, cotprompt = get_dataset(task, requirements = "_5shot") 
     dataloader, cotprompt = get_dataset(task, is_distributed = is_distributed, requirements = "") 
@@ -230,3 +232,13 @@ for task in tasks:
         correctanswers += checkcriteria 
         if accelerator.is_main_process: 
             print("Total examples: {} Correct answers: {}".format(totalexamples, correctanswers)) 
+        
+    dist.all_reduce(torch.tensor(totalexamples, device = args.device), op = dist.ReduceOp.SUM) 
+    dist.all_reduce(torch.tensor(correctanswers, device = args.device), op = dist.ReduceOp.SUM) 
+    countaccum[task] = [totalexamples, correctanswers, correctanswers / totalexamples] 
+
+if accelerator.is_main_process: 
+    # formatting the output 
+    print("Task\tTotal\tCorrect\tAccuracy") 
+    for task in tasks: 
+        print("{}\t{}\t{}\t{}".format(task, countaccum[task][0], countaccum[task][1], countaccum[task][2])) 
