@@ -174,6 +174,6 @@ for task in tasks:
         print(generatedtext[indexpinned : indexperiod]) 
         # answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
         answer = generatedtext[indexperiod - 3 : indexperiod] 
-        print(colored("Answer {} expected {}".format(answer[1], batch["answerKey"][0]), "red")) 
+        print(colored("Answer {} expected {}".format(answer[1], batch["answerKey"][0].lower()), "red")) 
         break 
         
