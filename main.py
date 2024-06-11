@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser(description = "CommonSense Reasoning with gener
 parser.add_argument("--tasks", type = str) 
 parser.add_argument("--model", type = str) 
 parser.add_argument("--device", type = str, default = None) 
+parser.add_argument("--limit", type = int, default = None) 
 
 accelerator = Accelerator() 
 
@@ -58,7 +59,10 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         cotprompt = cotprompt.replace("\\", "") 
     if datasetname == "csqa": 
         # loading the actual dataset 
-        dataset = load_dataset("tau/commonsense_qa", split = "validation") 
+        if args.limit is None: 
+            dataset = load_dataset("tau/commonsense_qa", split = "validation") 
+        else: 
+            dataset = load_dataset("tau/commonsense_qa", split = "validation[:{}]".format(args.limit)) 
         def encodewithtokenizer(example): 
             options = example["choices"]["text"] 
             inputtext = "Q: {}\nOptions: (a) {} (b) {} (c) {} (d) {} (e) {}\nA:".format(example["question"], options[0], options[1], options[2], options[3], options[4]) 
