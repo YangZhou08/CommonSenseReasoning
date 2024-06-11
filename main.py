@@ -8,6 +8,7 @@ from datasets import concatenate_datasets
 from torch.utils.data import DataLoader 
 from typing import List, Literal, Optional, Tuple, Union 
 import argparse 
+from termcolor import colored 
 
 ### Parsing the arguments ### 
 parser = argparse.ArgumentParser(description = "CommonSense Reasoning with generation and chain-of-thoughts") 
@@ -107,6 +108,7 @@ class MultiTokenEOSCriteria(transformers.StoppingCriteria):
         lookback_ids_batch = lookback_ids_batch[:, -self.sequence_id_len :]
 
         lookback_tokens_batch = self.tokenizer.batch_decode(lookback_ids_batch)
+        print(colored("{}".format(lookback_tokens_batch), "green")) 
 
         for i, done in enumerate(self.done_tracker):
             if not done:
