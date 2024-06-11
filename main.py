@@ -141,7 +141,7 @@ for task in tasks:
     print("shape of promptids {}".format(promptids.shape)) 
     for batch in dataloader: 
         print("answer found {}".format("answerKey" in batch.keys())) 
-        print(batch["answerKey"]) 
+        print(batch["answerKey"][0]) 
         print(len(batch["answerKey"])) 
         exit(0) 
         input_ids = batch["input_ids"] 
