@@ -196,7 +196,7 @@ for task in tasks:
             stopping_criteria = stop_criteria, 
             pad_token_id = tokenizer.pad_token_id, 
             do_sample = False, 
-            past_key_values = kv_cache, 
+            # past_key_values = kv_cache, 
         ) 
         # print(tokenizer.decode(outputs[0])) 
         print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
