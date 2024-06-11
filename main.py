@@ -216,7 +216,7 @@ def criteriaoutput(datasetname, outputs, inputexample):
                     if segsanswer[i][0] == '0': 
                         segsanswer[i] = segsanswer[i][1 : ] 
                     accumulate = accumulate and (segsanswer[i] == segsexpectedanswer[i]) 
-                    print("answer {} expected {} accumulate {}".format(segsanswer[i], segsexpectedanswer[i], accumulate)) 
+                    # print("answer {} expected {} accumulate {}".format(segsanswer[i], segsexpectedanswer[i], accumulate)) 
                 resultoutput = accumulate 
         if accelerator.is_main_process: 
             if resultoutput: 
