@@ -91,7 +91,8 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         dataset = load_dataset("tasksource/bigbench", "sports_understanding") 
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
         def encodewithtokenizer(example): 
-            inputtext = "Q: {}".format(example["inputs"]) 
+            # inputtext = "Q: {}".format(example["inputs"]) 
+            inputtext = "Q: {}\nA:".format(example["inputs"]) 
             return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
