@@ -138,22 +138,17 @@ for task in tasks:
     dataloader, cotprompt = get_dataset(task) 
     promptids = tokenizer(cotprompt, return_tensors = "pt", truncation = True, padding = False)["input_ids"] 
     promptids = torch.tensor(promptids, dtype = torch.long) 
-    print("shape of promptids {}".format(promptids.shape)) 
     for batch in dataloader: 
         # print("answer found {}".format("answerKey" in batch.keys())) 
         # print(batch["answerKey"][0]) 
         # print(len(batch["answerKey"])) 
         # exit(0) 
         input_ids = batch["input_ids"] 
-        print("length of input_ids: ", len(input_ids)) 
-        print("length of input_ids[0]: ", len(input_ids[0])) 
         input_ids = torch.tensor(input_ids, dtype = torch.long) 
-        print("shape of input_ids {}".format(input_ids.shape)) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(model.device) 
         stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
         
-        print("start generating") 
         outputs = model.generate(
             input_ids = input_ids, 
             attention_mask = None, 
@@ -164,16 +159,16 @@ for task in tasks:
             # pad_token_id = tokenizer.pad_token_id, 
             do_sample = False, 
         ) 
-        print("finished") 
         print(tokenizer.decode(outputs[0])) 
         generatedtext = tokenizer.decode(outputs[0][input_ids.shape[1] :]) 
-        print(generatedtext) 
         indexpinned = generatedtext.find("So the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
-        print("indexpinned {}".format(indexpinned)) 
-        print(generatedtext[indexpinned : indexperiod]) 
         # answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
-        answer = generatedtext[indexperiod - 3 : indexperiod] 
-        print(colored("Answer {} expected {}".format(answer[1], batch["answerKey"][0].lower()), "red")) 
+        answer = generatedtext[indexperiod - 2] 
+        expectedanswer = batch["answerKey"][0].lower() 
+        if answer == expectedanswer: 
+            print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
+        else: 
+            print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
         break 
         
