@@ -40,7 +40,7 @@ def get_dataset(datasetname):
         cotprompt = cotprompt.replace("\\", "") 
     if datasetname == "csqa": 
         # loading the actual dataset 
-        dataset = load_dataset("tau/commonsense_qa", split = "test") 
+        dataset = load_dataset("tau/commonsense_qa", split = "validation") 
         def encodewithtokenizer(example): 
             options = example["choices"]["text"] 
             inputtext = "Q: {}\nOptions: (a) {} (b) {} (c) {} (d) {} (e) {}\nA:".format(example["question"], options[0], options[1], options[2], options[3], options[4]) 
