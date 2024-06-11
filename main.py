@@ -298,9 +298,10 @@ for task in tasks:
         correctanswers += checkcriteria 
         if accelerator.is_main_process: 
             print("Total examples: {} Correct answers: {}".format(totalexamples, correctanswers)) 
-        
-    dist.all_reduce(torch.tensor(totalexamples, device = args.device), op = dist.ReduceOp.SUM) 
-    dist.all_reduce(torch.tensor(correctanswers, device = args.device), op = dist.ReduceOp.SUM) 
+    
+    if is_distributed: 
+        dist.all_reduce(torch.tensor(totalexamples, device = args.device), op = dist.ReduceOp.SUM) 
+        dist.all_reduce(torch.tensor(correctanswers, device = args.device), op = dist.ReduceOp.SUM) 
     countaccum[task] = [totalexamples, correctanswers, correctanswers / totalexamples] 
 
 if accelerator.is_main_process: 
