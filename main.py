@@ -38,7 +38,7 @@ if args.device is None:
         args.device = "cuda" if torch.cuda.is_available() else "cpu" 
 
 ### Loading the tokenizer and the model ### 
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct") 
+tokenizer = AutoTokenizer.from_pretrained(args.model) 
 if tokenizer.pad_token is not None: 
     print("tokenizer has pad token {}".format(tokenizer.pad_token)) 
 else: 
@@ -46,7 +46,7 @@ else:
     print("We now use eos_token as pad token") 
 tokenizer.padding_side = "left" 
 # model = LlamaForCausalLM.from_pretrained(args.model, device_map = args.device, torch_dtype = torch.bfloat16) 
-model = LlamaForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct", device_map = args.device, torch_dtype = torch.bfloat16) 
+model = LlamaForCausalLM.from_pretrained(args.model, device_map = args.device, torch_dtype = torch.bfloat16) 
 model.eval() 
 if is_distributed: 
     model = accelerator.prepare(model) 
