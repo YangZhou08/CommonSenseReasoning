@@ -70,7 +70,10 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
         print("length of dataset: ", len(dataset)) 
     elif datasetname == "strategyqa": 
-        dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation") 
+        if args.limit is None: 
+            dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation") 
+        else: 
+            dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation[:{}]".format(args.limit)) 
         def encodewithtokenizer(example): 
             inputtext = "Q: Yes or No: {}".format(example["inputs"][3 :]) 
             return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
