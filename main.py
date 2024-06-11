@@ -201,12 +201,12 @@ def criteriaoutput(datasetname, outputs, inputexample):
         else: 
             segsanswer = answer.split("/") 
             segsexpectedanswer = expectedanswer.split("/") 
-            print("length of answer {} expected {}".format(len(segsanswer), len(segsexpectedanswer))) 
-            if len(segsanswer) != len(expectedanswer): 
-                print("length of answer {} expected {}".format(len(segsanswer), len(segsexpectedanswer))) 
+            # print("length of answer {} expected {}".format(len(segsanswer), len(segsexpectedanswer))) 
+            if len(segsanswer) != len(segsexpectedanswer): 
+                # print("length of answer {} expected {}".format(len(segsanswer), len(segsexpectedanswer))) 
                 resultoutput = False 
             else: 
-                print("entering the else") 
+                # print("entering the else") 
                 accumulate = True 
                 for i in range(3): 
                     if segsexpectedanswer[i][0] == '0': 
