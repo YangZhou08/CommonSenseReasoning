@@ -160,7 +160,8 @@ def criteriaoutput(datasetname, outputs, expectedanswer):
         raise ValueError("Unknown dataset {}".format(datasetname)) 
 
 for task in tasks: 
-    dataloader, cotprompt = get_dataset(task, requirements = "_5shot") 
+    # dataloader, cotprompt = get_dataset(task, requirements = "_5shot") 
+    dataloader, cotprompt = get_dataset(task, requirements = "") 
     promptids = tokenizer(cotprompt, return_tensors = "pt", truncation = True, padding = False)["input_ids"] 
     promptids = torch.tensor(promptids, dtype = torch.long).to(args.device) 
     totalexamples = 0 
