@@ -84,7 +84,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         def encodewithtokenizer(example): 
             inputtext = example["inputs"] 
             return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
-        dataset = dataset[10: ] 
+        dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     elif datasetname == "sports": 
         dataset = load_dataset("tasksource/bigbench", "sports_understanding") 
@@ -92,7 +92,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         def encodewithtokenizer(example): 
             inputtext = "Q: {}".format(example["inputs"]) 
             return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
-        dataset = dataset[10: ] 
+        dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     else: 
         raise ValueError("Unknown dataset {}".format(datasetname)) 
