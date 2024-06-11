@@ -162,16 +162,17 @@ def criteriaoutput(datasetname, outputs, expectedanswer):
 for task in tasks: 
     dataloader, cotprompt = get_dataset(task, requirements = "_5shot") 
     promptids = tokenizer(cotprompt, return_tensors = "pt", truncation = True, padding = False)["input_ids"] 
-    promptids = torch.tensor(promptids, dtype = torch.long) 
+    promptids = torch.tensor(promptids, dtype = torch.long).to(args.device) 
     totalexamples = 0 
     correctanswers = 0 
-    
+    '''
     # make the kv cache 
     outputs = model(
         input_ids = promptids, 
         use_cache = True, 
         return_dict = True, 
     ) 
+    ''' 
     kv_cache = outputs.past_key_values 
     for i, batch in tqdm(enumerate(dataloader)): 
         # print("answer found {}".format("answerKey" in batch.keys())) 
@@ -181,7 +182,7 @@ for task in tasks:
         input_ids = batch["input_ids"] 
         input_ids = torch.tensor(input_ids, dtype = torch.long) 
         print(tokenizer.decode(input_ids[0])) 
-        # input_ids = torch.cat([promptids, input_ids], dim = 1) 
+        input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(model.device) 
         stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
         
