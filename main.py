@@ -132,7 +132,29 @@ def stop_sequences_criteria(
                 for sequence in stop_sequences
             ],
         ]
-    )
+    ) 
+
+def criteriaoutput(datasetname, outputs, expectedanswer): 
+    if datasetname == "csqa": 
+        generatedtext = tokenizer.decode(outputs) 
+        indexpinned = generatedtext.find("So the answer is ") 
+        indexperiod = generatedtext.find(".", indexpinned) 
+        # answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
+        answer = generatedtext[indexperiod - 2] 
+        # expectedanswer = batch["answerKey"][0].lower() 
+        if answer == expectedanswer: 
+            print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
+        else: 
+            print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
+        return answer == expectedanswer 
+    elif datasetname == "strategyqa": 
+        pass 
+    elif datasetname == "date": 
+        pass 
+    elif datasetname == "sports": 
+        pass 
+    else: 
+        raise ValueError("Unknown dataset {}".format(datasetname)) 
 
 for task in tasks: 
     dataloader, cotprompt = get_dataset(task) 
@@ -161,14 +183,6 @@ for task in tasks:
         ) 
         print(tokenizer.decode(outputs[0])) 
         generatedtext = tokenizer.decode(outputs[0][input_ids.shape[1] :]) 
-        indexpinned = generatedtext.find("So the answer is ") 
-        indexperiod = generatedtext.find(".", indexpinned) 
-        # answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
-        answer = generatedtext[indexperiod - 2] 
-        expectedanswer = batch["answerKey"][0].lower() 
-        if answer == expectedanswer: 
-            print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
-        else: 
-            print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
+        checkcriteria = criteriaoutput(task, outputs[0][input_ids.shape[1] :], batch["answerKey"][0].lower()) 
         break 
         
