@@ -165,7 +165,7 @@ for task in tasks:
         generatedtext = tokenizer.decode(outputs[0][input_ids.shape[1] :]) 
         print(generatedtext) 
         indexpinned = generatedtext.find("So the answer is ") 
-        indexperiod = generatedtext.find(".") 
+        indexperiod = generatedtext.find(".", indexpinned) 
         print("indexpinned {}".format(indexpinned)) 
         print(generatedtext[indexpinned : indexperiod]) 
         # answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
