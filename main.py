@@ -213,6 +213,7 @@ def criteriaoutput(datasetname, outputs, inputexample):
                     segsexpectedanswer[i] = segsexpectedanswer[i][1 : ] 
                 if segsanswer[i][0] == '0': 
                     segsanswer[i] = segsanswer[i][1 : ] 
+                print("answer {} expected {}".format(segsanswer[i], segsexpectedanswer[i])) 
                 accumulate = accumulate and (segsanswer[i] == segsexpectedanswer[i]) 
             resultoutput = accumulate 
         return int(resultoutput) 
