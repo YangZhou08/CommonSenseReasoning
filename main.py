@@ -190,9 +190,29 @@ def criteriaoutput(datasetname, outputs, inputexample):
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
         return int(answer == expectedanswer) 
     elif datasetname == "date": 
-        pass 
+        expectedanswer = inputexample["targets"][0] 
+        generatedtext = tokenizer.decode(outputs) 
+        indexpinned = generatedtext.find("So the answer is ") 
+        indexperiod = generatedtext.find(".", indexpinned) 
+        answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
+        if accelerator.is_main_process: 
+            if answer == expectedanswer: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
+            else: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
+        return int(answer == expectedanswer) 
     elif datasetname == "sports": 
-        pass 
+        expectedanswer = inputexample["targets"][0] 
+        generatedtext = tokenizer.decode(outputs) 
+        indexpinned = generatedtext.find("So the answer is ") 
+        indexperiod = generatedtext.find(".", indexpinned) 
+        answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
+        if accelerator.is_main_process: 
+            if answer == expectedanswer: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
+            else: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
+        return int(answer == expectedanswer) 
     else: 
         raise ValueError("Unknown dataset {}".format(datasetname)) 
 
@@ -267,6 +287,6 @@ for task in tasks:
 
 if accelerator.is_main_process: 
     # formatting the output 
-    print("Task\tTotal\tCorrect\tAccuracy") 
+    print("Task\tTotal\tCorrect\tSolve Rate") 
     for task in tasks: 
         print("{}\t{}\t{}\t{}".format(task, countaccum[task][0], countaccum[task][1], countaccum[task][2])) 
