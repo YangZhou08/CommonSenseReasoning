@@ -8,6 +8,7 @@ from datasets import concatenate_datasets
 from torch.utils.data import DataLoader 
 from typing import List, Literal, Optional, Tuple, Union 
 import argparse 
+from tqdm import tqdm 
 from termcolor import colored 
 
 ### Parsing the arguments ### 
@@ -31,10 +32,10 @@ tokenizer.padding_side = "left"
 model = LlamaForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct", device_map = args.device, torch_dtype = torch.bfloat16) 
 
 ### Loading the datasets ### 
-def get_dataset(datasetname): 
+def get_dataset(datasetname, requirements = ""): 
     # loading the manually written cot prompt 
     cotprompt: str = None 
-    with open("{}_cot_prompts.txt".format(datasetname), "r") as file: 
+    with open("{}_cot_prompts{}.txt".format(datasetname, requirements), "r") as file: 
         cotprompt = file.read() 
         cotprompt = cotprompt.replace("\\n", "") 
         cotprompt = cotprompt.replace("\\", "") 
@@ -156,12 +157,12 @@ def criteriaoutput(datasetname, outputs, expectedanswer):
         raise ValueError("Unknown dataset {}".format(datasetname)) 
 
 for task in tasks: 
-    dataloader, cotprompt = get_dataset(task) 
+    dataloader, cotprompt = get_dataset(task, requirements = "_5shot"): 
     promptids = tokenizer(cotprompt, return_tensors = "pt", truncation = True, padding = False)["input_ids"] 
     promptids = torch.tensor(promptids, dtype = torch.long) 
     totalexamples = 0 
     correctanswers = 0 
-    for batch in dataloader: 
+    for i, batch in tqdm(enumerate(dataloader)): 
         # print("answer found {}".format("answerKey" in batch.keys())) 
         # print(batch["answerKey"][0]) 
         # print(len(batch["answerKey"])) 
