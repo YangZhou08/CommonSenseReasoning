@@ -190,7 +190,7 @@ def criteriaoutput(datasetname, outputs, inputexample):
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
         return int(answer == expectedanswer) 
     elif datasetname == "date": 
-        expectedanswer = inputexample["targets"][0] 
+        expectedanswer = inputexample["targets"][0][0] 
         generatedtext = tokenizer.decode(outputs) 
         indexpinned = generatedtext.find("So the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
@@ -202,7 +202,7 @@ def criteriaoutput(datasetname, outputs, inputexample):
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
         return int(answer == expectedanswer) 
     elif datasetname == "sports": 
-        expectedanswer = inputexample["targets"][0] 
+        expectedanswer = inputexample["targets"][0][0] 
         generatedtext = tokenizer.decode(outputs) 
         indexpinned = generatedtext.find("So the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
