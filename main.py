@@ -15,10 +15,13 @@ from termcolor import colored
 parser = argparse.ArgumentParser(description = "CommonSense Reasoning with generation and chain-of-thoughts") 
 parser.add_argument("--tasks", type = str) 
 parser.add_argument("--model", type = str) 
-parser.add_argument("--device", type = str) 
+parser.add_argument("--device", type = str, default = None) 
 
 args = parser.parse_args() 
 tasks = args.tasks.split(",") 
+
+if args.device is None: 
+    args.device = "cuda" if torch.cuda.is_available() else "cpu" 
 
 ### Loading the tokenizer and the model ### 
 tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct") 
