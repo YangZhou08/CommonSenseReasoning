@@ -172,8 +172,8 @@ for task in tasks:
         use_cache = True, 
         return_dict = True, 
     ) 
-    ''' 
     kv_cache = outputs.past_key_values 
+    ''' 
     for i, batch in tqdm(enumerate(dataloader)): 
         # print("answer found {}".format("answerKey" in batch.keys())) 
         # print(batch["answerKey"][0]) 
