@@ -161,5 +161,8 @@ for task in tasks:
             do_sample = False, 
         ) 
         print("finished") 
-        print(tokenizer.decode(outputs[0])) 
-        exit(0) 
+        generatedtext = tokenizer.decode(outputs[0]) 
+        print(generatedtext) 
+        indexpinned = generatedtext.find("So the answer is ") 
+        print(generatedtext[indexpinned : ]) 
+        
