@@ -208,7 +208,7 @@ for task in tasks:
         input_ids = input_ids.to(model.device) 
         stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
         
-        outputs = model.generate(
+        outputs = model.module.generate(
             input_ids = input_ids, 
             attention_mask = None, 
             # max_length = input_ids.shape[1] + 20, 
