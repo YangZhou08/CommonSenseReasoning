@@ -306,8 +306,12 @@ for task in tasks:
             print("Total examples: {} Correct answers: {}".format(totalexamples, correctanswers)) 
     
     if is_distributed: 
-        dist.all_reduce(torch.tensor(totalexamples, device = args.device), op = dist.ReduceOp.SUM) 
-        dist.all_reduce(torch.tensor(correctanswers, device = args.device), op = dist.ReduceOp.SUM) 
+        totalexamples = torch.tensor(totalexamples, device = args.device) 
+        correctanswers = torch.tensor(correctanswers, device = args.device) 
+        dist.all_reduce(totalexamples, op = dist.ReduceOp.SUM) 
+        dist.all_reduce(correctanswers, op = dist.ReduceOp.SUM) 
+        totalexamples = totalexamples.item() 
+        correctanswers = correctanswers.item() 
     countaccum[task] = [totalexamples, correctanswers, correctanswers / totalexamples] 
 
 if accelerator.is_main_process: 
