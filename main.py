@@ -1,5 +1,7 @@
 import torch 
+from torch.utils.data.distributed import DistributedSampler 
 import transformers 
+from accelerate import Accelerator 
 import lm_eval 
 from datasets import load_dataset 
 from transformers import AutoTokenizer, LlamaForCausalLM 
@@ -17,11 +19,20 @@ parser.add_argument("--tasks", type = str)
 parser.add_argument("--model", type = str) 
 parser.add_argument("--device", type = str, default = None) 
 
+accelerator = Accelerator() 
+
+# Check if we are in a distributed setup
+is_distributed = accelerator.distributed_type != "NO"
+
 args = parser.parse_args() 
 tasks = args.tasks.split(",") 
 
 if args.device is None: 
-    args.device = "cuda" if torch.cuda.is_available() else "cpu" 
+    # args.device = "cuda" if torch.cuda.is_available() else "cpu" 
+    if is_distributed: 
+        args.device = "cuda:{}".format(accelerator.process_index) if torch.cuda.is_available() else "cpu" 
+    else: 
+        args.device = "cuda" if torch.cuda.is_available() else "cpu" 
 
 ### Loading the tokenizer and the model ### 
 tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct") 
@@ -33,9 +44,11 @@ else:
 tokenizer.padding_side = "left" 
 # model = LlamaForCausalLM.from_pretrained(args.model, device_map = args.device, torch_dtype = torch.bfloat16) 
 model = LlamaForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct", device_map = args.device, torch_dtype = torch.bfloat16) 
+if is_distributed: 
+    model = accelerator.prepare(model) 
 
 ### Loading the datasets ### 
-def get_dataset(datasetname, requirements = ""): 
+def get_dataset(datasetname, is_distributed = False, requirements = ""): 
     # loading the manually written cot prompt 
     cotprompt: str = None 
     with open("{}_cot_prompts{}.txt".format(datasetname, requirements), "r") as file: 
@@ -75,8 +88,12 @@ def get_dataset(datasetname, requirements = ""):
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     else: 
         raise ValueError("Unknown dataset {}".format(datasetname)) 
-        
-    dataloader = DataLoader(dataset, batch_size = 1, shuffle = False) 
+    
+    if is_distributed: 
+        distributedsampler = DistributedSampler(dataset, num_replicas = accelerator.num_processes, rank = accelerator.process_index) 
+        dataloader = DataLoader(dataset, batch_size = 1, shuffle = False, sampler = distributedsampler) 
+    else: 
+        dataloader = DataLoader(dataset, batch_size = 1, shuffle = False) 
     return dataloader, cotprompt 
 
 ### Generate with custom termination condition ### 
@@ -161,7 +178,7 @@ def criteriaoutput(datasetname, outputs, expectedanswer):
 
 for task in tasks: 
     # dataloader, cotprompt = get_dataset(task, requirements = "_5shot") 
-    dataloader, cotprompt = get_dataset(task, requirements = "") 
+    dataloader, cotprompt = get_dataset(task, is_distributed = is_distributed, requirements = "") 
     promptids = tokenizer(cotprompt, return_tensors = "pt", truncation = True, padding = False)["input_ids"] 
     promptids = torch.tensor(promptids, dtype = torch.long).to(args.device) 
     totalexamples = 0 
