@@ -162,10 +162,11 @@ def criteriaoutput(datasetname, outputs, expectedanswer):
         # answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
         answer = generatedtext[indexperiod - 2] 
         # expectedanswer = batch["answerKey"][0].lower() 
-        if answer == expectedanswer: 
-            print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
-        else: 
-            print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
+        if accelerator.is_main_process: 
+            if answer == expectedanswer: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
+            else: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
         return int(answer == expectedanswer) 
     elif datasetname == "strategyqa": 
         pass 
@@ -203,9 +204,10 @@ for task in tasks:
         input_ids = batch["input_ids"] 
         input_ids = torch.tensor(input_ids, dtype = torch.long) 
         input_ids = input_ids.to(args.device) 
-        print(tokenizer.decode(input_ids[0])) 
+        if accelerator.is_main_process: 
+            print(tokenizer.decode(input_ids[0])) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
-        input_ids = input_ids.to(model.device) 
+        input_ids = input_ids.to(args.device) 
         stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
         
         outputs = model.module.generate(
@@ -220,10 +222,11 @@ for task in tasks:
             # past_key_values = kv_cache, 
         ) 
         # print(tokenizer.decode(outputs[0])) 
-        print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
+        if accelerator.is_main_process: 
+            print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
         generatedtext = tokenizer.decode(outputs[0][input_ids.shape[1] :]) 
         checkcriteria = criteriaoutput(task, outputs[0][input_ids.shape[1] :], batch["answerKey"][0].lower()) 
         totalexamples += 1 
         correctanswers += checkcriteria 
-        print("Total examples: {} Correct answers: {}".format(totalexamples, correctanswers)) 
-        
+        if accelerator.is_main_process: 
+            print("Total examples: {} Correct answers: {}".format(totalexamples, correctanswers)) 
