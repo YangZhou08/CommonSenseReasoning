@@ -37,3 +37,4 @@ A: The answer must be a color that rose flowers typically have. A vase is not a 
 Q: You will find many swamps in the in the southern U.S. along what geographic feature?
 Options: (a) river delta (b) michigan (c) louisiana (d) wetlands (e) alligators
 A: The answer must to a geographic feature that is common in the southern U.S. and frequently appears with swamps. Michigan and Louisiana are the states in the U.S. not geographic features. Wetlands refer to the ecosystem of swamps, but not a geographic feature. Alligators live in swamps but not geographic features. River delta is a geographic feature that commonly appears with swamps. So the answer is river delta.
+
