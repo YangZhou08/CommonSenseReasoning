@@ -178,11 +178,11 @@ def criteriaoutput(datasetname, outputs, inputexample):
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
         return int(answer == expectedanswer) 
     elif datasetname == "strategyqa": 
-        expectedanswer = inputexample["multiple_choice_targets"][inputexample["multiple_choice_scores"].index(1)] 
+        expectedanswer = inputexample["multiple_choice_targets"][inputexample["multiple_choice_scores"].index(1)][0].lower() 
         generatedtext = tokenizer.decode(outputs) 
         indexpinned = generatedtext.find("So the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
-        answer = generatedtext[indexpinned + len("So the answer is ") : indexpinned] 
+        answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
         if accelerator.is_main_process: 
             if answer == expectedanswer: 
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
