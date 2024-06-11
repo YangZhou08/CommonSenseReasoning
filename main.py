@@ -46,6 +46,7 @@ else:
 tokenizer.padding_side = "left" 
 # model = LlamaForCausalLM.from_pretrained(args.model, device_map = args.device, torch_dtype = torch.bfloat16) 
 model = LlamaForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct", device_map = args.device, torch_dtype = torch.bfloat16) 
+model.eval() 
 if is_distributed: 
     model = accelerator.prepare(model) 
 
@@ -292,6 +293,7 @@ for task in tasks:
                 pad_token_id = tokenizer.pad_token_id, 
                 do_sample = False, 
             ) 
+        print("length generated {}".format(outputs[0].shape[-1] - input_ids.shape[1])) 
         # print(tokenizer.decode(outputs[0])) 
         if accelerator.is_main_process: 
             print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
