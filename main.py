@@ -195,27 +195,29 @@ def criteriaoutput(datasetname, outputs, inputexample):
         indexpinned = generatedtext.find("So the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
         answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
-        if accelerator.is_main_process: 
-            if answer == expectedanswer: 
-                print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
-            else: 
-                print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
         resultoutput = False 
         if answer == expectedanswer: 
             resultoutput = True 
         else: 
             segsanswer = answer.split("/") 
             segsexpectedanswer = expectedanswer.split("/") 
-            assert len(segsanswer) == len(segsexpectedanswer) 
-            accumulate = True 
-            for i in range(3): 
-                if segsexpectedanswer[i][0] == '0': 
-                    segsexpectedanswer[i] = segsexpectedanswer[i][1 : ] 
-                if segsanswer[i][0] == '0': 
-                    segsanswer[i] = segsanswer[i][1 : ] 
-                accumulate = accumulate and (segsanswer[i] == segsexpectedanswer[i]) 
-                print("answer {} expected {} accumulate {}".format(segsanswer[i], segsexpectedanswer[i], accumulate)) 
-            resultoutput = accumulate 
+            if len(segsanswer) != len(expectedanswer): 
+                resultoutput = False 
+            else: 
+                accumulate = True 
+                for i in range(3): 
+                    if segsexpectedanswer[i][0] == '0': 
+                        segsexpectedanswer[i] = segsexpectedanswer[i][1 : ] 
+                    if segsanswer[i][0] == '0': 
+                        segsanswer[i] = segsanswer[i][1 : ] 
+                    accumulate = accumulate and (segsanswer[i] == segsexpectedanswer[i]) 
+                    print("answer {} expected {} accumulate {}".format(segsanswer[i], segsexpectedanswer[i], accumulate)) 
+                resultoutput = accumulate 
+        if accelerator.is_main_process: 
+            if resultoutput: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
+            else: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
         return int(resultoutput) 
     elif datasetname == "sports": 
         expectedanswer = inputexample["targets"][0][0] 
