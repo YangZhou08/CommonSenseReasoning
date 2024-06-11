@@ -168,7 +168,8 @@ for task in tasks:
         indexperiod = generatedtext.find(".") 
         print("indexpinned {}".format(indexpinned)) 
         print(generatedtext[indexpinned : indexperiod]) 
-        answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
+        # answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
+        answer = generatedtext[indexpinned - 3 : indexpinned] 
         print(colored(answer, "green")) 
         break 
         
