@@ -5,7 +5,9 @@ import transformers
 from accelerate import Accelerator 
 import lm_eval 
 from datasets import load_dataset 
-from transformers import AutoTokenizer, LlamaForCausalLM 
+# from transformers import AutoTokenizer, LlamaForCausalLM 
+from transformers import AutoTokenizer 
+from llama10 import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
 import numpy as np 
 from datasets import concatenate_datasets 
 from torch.utils.data import DataLoader 
@@ -20,6 +22,13 @@ parser.add_argument("--tasks", type = str)
 parser.add_argument("--model", type = str) 
 parser.add_argument("--device", type = str, default = None) 
 parser.add_argument("--limit", type = int, default = None) 
+parser.add_argument("--griffin", type = bool, default = False) 
+parser.add_argument("--cats", type = bool, default = False) 
+parser.add_argument("--check", type = bool, default = False) 
+parser.add_argument("--kernel_size", type = int, default = False) 
+parser.add_argument("--spr", type = float, default = 0.5) 
+parser.add_argument("--thr", type = float, default = 0.1) 
+
 
 accelerator = Accelerator() 
 
@@ -45,8 +54,25 @@ else:
     tokenizer.pad_token = tokenizer.eos_token 
     print("We now use eos_token as pad token") 
 tokenizer.padding_side = "left" 
-# model = LlamaForCausalLM.from_pretrained(args.model, device_map = args.device, torch_dtype = torch.bfloat16) 
-model = LlamaForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct", device_map = args.device, torch_dtype = torch.bfloat16) 
+model = LlamaForCausalLM.from_pretrained(args.model, device_map = args.device, torch_dtype = torch.bfloat16) 
+
+if args.griffin: 
+    schedule_k = [args.spr for _ in range(model.config.num_hidden_layers)] 
+if args.cats: 
+    schedule_k = [(1 - args.spr) for _ in range(model.config.num_hidden_layers)] 
+
+model.config.mode = "gen" 
+model.config.selection_method = "topk" 
+model.config.check = args.check 
+model.config.griffin = args.griffin 
+model.config.kernel_size = args.kernel_size 
+model.config.thr = args.thr 
+
+if args.griffin: 
+    model = get_llama_griffin2(model, schedule_k) 
+else: 
+    model = get_llama_griffin(model, schedule_k) 
+
 model.eval() 
 if is_distributed: 
     model = accelerator.prepare(model) 
