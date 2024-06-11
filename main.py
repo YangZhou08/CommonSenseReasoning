@@ -185,6 +185,7 @@ for task in tasks:
     totalexamples = 0 
     correctanswers = 0 
     
+    '''
     # make the kv cache 
     outputs = model(
         input_ids = promptids, 
@@ -192,6 +193,7 @@ for task in tasks:
         return_dict = True, 
     ) 
     kv_cache = outputs.past_key_values 
+    ''' 
     
     for i, batch in enumerate(tqdm(dataloader)): 
         # print("answer found {}".format("answerKey" in batch.keys())) 
@@ -215,7 +217,7 @@ for task in tasks:
             stopping_criteria = stop_criteria, 
             pad_token_id = tokenizer.pad_token_id, 
             do_sample = False, 
-            past_key_values = kv_cache, 
+            # past_key_values = kv_cache, 
         ) 
         # print(tokenizer.decode(outputs[0])) 
         print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
