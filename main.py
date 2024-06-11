@@ -205,6 +205,7 @@ def criteriaoutput(datasetname, outputs, inputexample):
             if len(segsanswer) != len(expectedanswer): 
                 resultoutput = False 
             else: 
+                print("entering the else") 
                 accumulate = True 
                 for i in range(3): 
                     if segsexpectedanswer[i][0] == '0': 
