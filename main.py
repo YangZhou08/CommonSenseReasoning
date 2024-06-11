@@ -37,6 +37,7 @@ def get_dataset(datasetname):
     with open("{}_cot_prompts.txt".format(datasetname), "r") as file: 
         cotprompt = file.read() 
         cotprompt = cotprompt.replace("\\n", "\n") 
+        cotprompt = cotprompt.replace("\\", "") 
     if datasetname == "csqa": 
         # loading the actual dataset 
         dataset = load_dataset("tau/commonsense_qa", split = "test") 
