@@ -193,7 +193,7 @@ for task in tasks:
     ) 
     kv_cache = outputs.past_key_values 
     
-    for i, batch in tqdm(enumerate(dataloader)): 
+    for i, batch in enumerate(tqdm(dataloader)): 
         # print("answer found {}".format("answerKey" in batch.keys())) 
         # print(batch["answerKey"][0]) 
         # print(len(batch["answerKey"])) 
