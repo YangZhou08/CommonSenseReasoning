@@ -25,7 +25,7 @@ parser.add_argument("--limit", type = int, default = None)
 parser.add_argument("--griffin", type = bool, default = False) 
 parser.add_argument("--cats", type = bool, default = False) 
 parser.add_argument("--check", type = bool, default = False) 
-parser.add_argument("--kernel_size", type = int, default = False) 
+parser.add_argument("--kernel_size", type = int, default = None) 
 parser.add_argument("--spr", type = float, default = 0.5) 
 parser.add_argument("--thr", type = float, default = 0.1) 
 
@@ -38,6 +38,7 @@ print("is_distributed {}".format(is_distributed))
 
 args = parser.parse_args() 
 tasks = args.tasks.split(",") 
+print(args) 
 
 if args.device is None: 
     # args.device = "cuda" if torch.cuda.is_available() else "cpu" 
@@ -47,7 +48,7 @@ if args.device is None:
         args.device = "cuda" if torch.cuda.is_available() else "cpu" 
 
 ### Loading the tokenizer and the model ### 
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct") 
+tokenizer = AutoTokenizer.from_pretrained(args.model) 
 if tokenizer.pad_token is not None: 
     print("tokenizer has pad token {}".format(tokenizer.pad_token)) 
 else: 
@@ -342,6 +343,7 @@ for task in tasks:
 
 if accelerator.is_main_process: 
     # formatting the output 
+    print(args) 
     print("Task\tTotal\tCorrect\tSolve Rate") 
     for task in tasks: 
         print("{}\t{}\t{}\t{}".format(task, countaccum[task][0], countaccum[task][1], countaccum[task][2])) 
