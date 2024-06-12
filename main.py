@@ -31,6 +31,7 @@ parser.add_argument("--check", action = "store_true")
 parser.add_argument("--kernel_size", type = int, default = None) 
 parser.add_argument("--spr", type = float, default = 0.5) 
 parser.add_argument("--thr", type = float, default = 0.1) 
+parser.add_argument("--shotfive", action = "store_true") 
 
 
 accelerator = Accelerator() 
@@ -244,13 +245,16 @@ def criteriaoutput(datasetname, outputs, inputexample):
             else: 
                 # print("entering the else") 
                 accumulate = True 
-                for i in range(3): 
-                    if segsexpectedanswer[i][0] == '0': 
-                        segsexpectedanswer[i] = segsexpectedanswer[i][1 : ] 
-                    if segsanswer[i][0] == '0': 
-                        segsanswer[i] = segsanswer[i][1 : ] 
-                    accumulate = accumulate and (segsanswer[i] == segsexpectedanswer[i]) 
-                    # print("answer {} expected {} accumulate {}".format(segsanswer[i], segsexpectedanswer[i], accumulate)) 
+                try: 
+                    for i in range(3): 
+                        if segsexpectedanswer[i][0] == '0': 
+                            segsexpectedanswer[i] = segsexpectedanswer[i][1 : ] 
+                        if segsanswer[i][0] == '0': 
+                            segsanswer[i] = segsanswer[i][1 : ] 
+                        accumulate = accumulate and (segsanswer[i] == segsexpectedanswer[i]) 
+                        # print("answer {} expected {} accumulate {}".format(segsanswer[i], segsexpectedanswer[i], accumulate)) 
+                except: 
+                    accumulate = False 
                 resultoutput = accumulate 
         if accelerator.is_main_process: 
             if resultoutput: 
@@ -278,7 +282,10 @@ print("tasks {}".format(tasks))
 countaccum = {} 
 for task in tasks: 
     # dataloader, cotprompt = get_dataset(task, requirements = "_5shot") 
-    dataloader, cotprompt = get_dataset(task, is_distributed = is_distributed, requirements = "") 
+    if args.shotfive != True: 
+        dataloader, cotprompt = get_dataset(task, is_distributed = is_distributed, requirements = "") 
+    else: 
+        dataloader, cotprompt = get_dataset(task, is_distributed = is_distributed, requirements = "_5shot") 
     promptids = tokenizer(cotprompt, return_tensors = "pt", truncation = True, padding = False)["input_ids"] 
     promptids = torch.tensor(promptids, dtype = torch.long).to(args.device) 
     totalexamples = 0 
