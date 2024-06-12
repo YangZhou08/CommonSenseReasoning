@@ -199,7 +199,8 @@ def criteriaoutput(datasetname, outputs, inputexample):
     if datasetname == "csqa": 
         expectedanswer = inputexample["answerKey"][0].lower() 
         generatedtext = tokenizer.decode(outputs) 
-        indexpinned = generatedtext.find("So the answer is ") 
+        generatedtext = generatedtext.lower() 
+        indexpinned = generatedtext.find("so the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
         # answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
         answer = generatedtext[indexperiod - 2] 
@@ -213,9 +214,10 @@ def criteriaoutput(datasetname, outputs, inputexample):
     elif datasetname == "strategyqa": 
         expectedanswer = inputexample["multiple_choice_targets"][inputexample["multiple_choice_scores"].index(1)][0].lower() 
         generatedtext = tokenizer.decode(outputs) 
-        indexpinned = generatedtext.find("So the answer is ") 
+        generatedtext = generatedtext.lower() 
+        indexpinned = generatedtext.find("so the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
-        answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
+        answer = generatedtext[indexpinned + len("so the answer is ") : indexperiod] 
         if accelerator.is_main_process: 
             if answer == expectedanswer: 
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
@@ -225,9 +227,10 @@ def criteriaoutput(datasetname, outputs, inputexample):
     elif datasetname == "date": 
         expectedanswer = inputexample["targets"][0][0] 
         generatedtext = tokenizer.decode(outputs) 
-        indexpinned = generatedtext.find("So the answer is ") 
+        generatedtext = generatedtext.lower() 
+        indexpinned = generatedtext.find("so the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
-        answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
+        answer = generatedtext[indexpinned + len("so the answer is ") : indexperiod] 
         resultoutput = False 
         if answer == expectedanswer: 
             resultoutput = True 
@@ -258,9 +261,10 @@ def criteriaoutput(datasetname, outputs, inputexample):
     elif datasetname == "sports": 
         expectedanswer = inputexample["targets"][0][0] 
         generatedtext = tokenizer.decode(outputs) 
-        indexpinned = generatedtext.find("So the answer is ") 
+        generatedtext = generatedtext.lower() 
+        indexpinned = generatedtext.find("so the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
-        answer = generatedtext[indexpinned + len("So the answer is ") : indexperiod] 
+        answer = generatedtext[indexpinned + len("so the answer is ") : indexperiod] 
         if accelerator.is_main_process: 
             if answer == expectedanswer: 
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
