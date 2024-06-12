@@ -75,7 +75,7 @@ model.config.thr = args.thr
 
 if args.griffin: 
     model = get_llama_griffin2(model, schedule_k) 
-else: 
+if args.cats: 
     model = get_llama_griffin(model, schedule_k) 
 
 model.eval() 
