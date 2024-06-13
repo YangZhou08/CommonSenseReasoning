@@ -1,3 +1,6 @@
 Q: Determine whether the following statement or statements are plausible or implausible: Statement: Marouane Fellaini scored a freekick Plausible/implausible? 
 A: Marouane Fellaini is a Belgian professional soccer player, and freekicks are a common way to score goals in soccer. So the answer is plausible. 
 
+Q: Determine whether the following statement or statements are plausible or implausible: Statement: Javi Martinez comitted a three second violation Plausible/implausible? 
+A: Javi Martinez is a Spanish professional soccer player, and three second violations are a common rule in basketball. So the answer is implausible. 
+

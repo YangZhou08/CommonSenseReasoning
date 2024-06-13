@@ -32,7 +32,7 @@ parser.add_argument("--kernel_size", type = int, default = None)
 parser.add_argument("--spr", type = float, default = 0.5) 
 parser.add_argument("--thr", type = float, default = 0.1) 
 parser.add_argument("--shotfive", action = "store_true") 
-parser.add_argument("--shotone", action = "store_true") 
+parser.add_argument("--shottwo", action = "store_true") 
 
 
 accelerator = Accelerator() 
@@ -285,7 +285,7 @@ for task in tasks:
     # dataloader, cotprompt = get_dataset(task, requirements = "_5shot") 
     if args.shotfive: 
         dataloader, cotprompt = get_dataset(task, is_distributed = is_distributed, requirements = "_5shot") 
-    elif args.shotone: 
+    elif args.shottwo: 
         dataloader, cotprompt = get_dataset(task, is_distributed = is_distributed, requirements = "_1shot") 
     else: 
         dataloader, cotprompt = get_dataset(task, is_distributed = is_distributed, requirements = "") 
