@@ -1,0 +1,3 @@
+Q: Determine whether the following statement or statements are plausible or implausible: Statement: Marouane Fellaini scored a freekick Plausible/implausible? 
+A: Marouane Fellaini is a Belgian professional soccer player, and freekicks are a common way to score goals in soccer. So the answer is plausible. 
+
