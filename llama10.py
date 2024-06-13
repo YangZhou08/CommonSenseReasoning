@@ -854,7 +854,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.total_steps = 0
         self.num_steps = 0
         self.num_sentence = 0 
-        self.verbose = True # manually set to false during measurement 
+        self.verbose = False # manually set to false during measurement 
         
         # for bug debugging investigation only 
         from transformers import AutoTokenizer 
