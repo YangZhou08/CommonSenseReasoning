@@ -129,6 +129,14 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
+    elif datasetname == "aqua": 
+        dataset = load_dataset("deepmind/aqua_rat", split = "test") 
+        # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
+        def encodewithtokenizer(example): 
+            options = example["options"] 
+            inputtext = "Q: {}\nOptions: (a) {} (b) {} (c) {} (d) {} (e) {}\nA:".format(example["question"], options[0][2 : ], options[1][2 : ], options[2][2 : ], options[3][2 : ], options[4][2 : ]) 
+            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+        dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     else: 
         raise ValueError("Unknown dataset {}".format(datasetname)) 
     
