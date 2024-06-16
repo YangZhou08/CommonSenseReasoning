@@ -342,7 +342,8 @@ for task in tasks:
             print(tokenizer.decode(input_ids[0])) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(args.device) 
-        stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
+        # stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
+        stop_criteria = stop_sequences_criteria(tokenizer, "Q: ", input_ids.shape[1], input_ids.shape[0]) 
         if is_distributed: 
             outputs = model.module.generate(
                 input_ids = input_ids, 
