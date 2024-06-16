@@ -160,7 +160,8 @@ class MultiTokenEOSCriteria(transformers.StoppingCriteria):
     ) -> None:
         self.initial_decoder_input_length = initial_decoder_input_length
         self.done_tracker = [False] * batch_size
-        self.sequence = sequence
+        self.sequence = sequence 
+        print("sequence {}".format(sequence)) 
         self.sequence_ids = tokenizer.encode(sequence, add_special_tokens=False)
         # print(sequence, self.sequence_ids)
         # we look back for 2 more tokens than it takes to encode our stop sequence
