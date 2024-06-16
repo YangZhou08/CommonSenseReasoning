@@ -331,8 +331,6 @@ for task in tasks:
     ) 
     kv_cache = outputs.past_key_values 
     ''' 
-    # stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
-    stop_criteria = stop_sequences_criteria(tokenizer, "Q: ", input_ids.shape[1], input_ids.shape[0]) 
     
     for i, batch in enumerate(tqdm(dataloader)): 
         # print("answer found {}".format("answerKey" in batch.keys())) 
@@ -346,6 +344,8 @@ for task in tasks:
             print(tokenizer.decode(input_ids[0])) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(args.device) 
+        # stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
+        stop_criteria = stop_sequences_criteria(tokenizer, "Q: ", input_ids.shape[1], input_ids.shape[0]) 
         if is_distributed: 
             outputs = model.module.generate(
                 input_ids = input_ids, 
