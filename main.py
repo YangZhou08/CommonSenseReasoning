@@ -184,7 +184,9 @@ class MultiTokenEOSCriteria(transformers.StoppingCriteria):
 
         for i, done in enumerate(self.done_tracker):
             if not done:
-                self.done_tracker[i] = self.sequence in lookback_tokens_batch[i]
+                self.done_tracker[i] = self.sequence in lookback_tokens_batch[i] 
+        print("done tracker {}".format(self.done_tracker)) 
+        exit(0) 
         return False not in self.done_tracker
 
 
