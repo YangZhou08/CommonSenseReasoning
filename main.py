@@ -141,7 +141,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         raise ValueError("Unknown dataset {}".format(datasetname)) 
     
     if is_distributed: 
-        distributedsampler = DistributedSampler(dataset, num_replicas = accelerator.num_processes, rank = accelerator.process_index) 
+        distributedsampler = DistributedSampler(dataset, num_replicas = accelerator.num_processes, rank = accelerator.process_index, drop_last = True) 
         dataloader = DataLoader(dataset, batch_size = 1, shuffle = False, sampler = distributedsampler) 
     else: 
         dataloader = DataLoader(dataset, batch_size = 1, shuffle = False) 
