@@ -882,6 +882,10 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
     def get_decoder(self):
         return self.model
 
+    def updatestatistic(self): 
+        self.num_steps = 0 
+        self.num_sentence = 0 
+        self.total_steps = 0 
 
     def forward(
         self,
