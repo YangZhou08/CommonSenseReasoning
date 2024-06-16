@@ -1239,6 +1239,9 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         last_input_ids_print_pos = initial_len # this variable is for visualization 
         outputs = None 
         
+        self.num_examples += 1 
+        assert input_ids.shape[0] == 1 
+        
         # TODO the main while loop 
         while True: 
             model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs) 
