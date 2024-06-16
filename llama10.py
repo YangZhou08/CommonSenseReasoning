@@ -854,6 +854,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.total_steps = 0
         self.num_steps = 0
         self.num_sentence = 0 
+        self.totalgenerationlength = 0 
         self.verbose = False # manually set to false during measurement 
         
         # for bug debugging investigation only 
@@ -886,6 +887,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.num_steps = 0 
         self.num_sentence = 0 
         self.total_steps = 0 
+        self.totalgenerationlength = 0 
 
     def forward(
         self,
@@ -1446,6 +1448,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         
         if streamer is not None:
             streamer.end()
+        
+        self.totalgenerationlength += input_ids.shape[1] - initial_len 
 
         if return_dict_in_generate:
             if self.config.is_encoder_decoder:

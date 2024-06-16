@@ -331,6 +331,7 @@ for task in tasks:
     ''' 
     
     for i, batch in enumerate(tqdm(dataloader)): 
+        print("localrank {} length of batch {}".format(accelerator.process_index, len(dataloader))) 
         # print("answer found {}".format("answerKey" in batch.keys())) 
         # print(batch["answerKey"][0]) 
         # print(len(batch["answerKey"])) 
