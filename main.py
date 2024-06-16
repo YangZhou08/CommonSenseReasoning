@@ -284,6 +284,20 @@ def criteriaoutput(datasetname, outputs, inputexample):
             else: 
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
         return int(answer == expectedanswer) 
+    elif datasetname == "aqua": 
+        expectedanswer = inputexample["correct"] 
+        expectedanswer = expectedanswer.lower() 
+        generatedtext = tokenizer.decode(outputs) 
+        generatedtext = generatedtext.lower() 
+        indexpinned = generatedtext.find("so the answer is ") 
+        indexperiod = generatedtext.find(".", indexpinned) 
+        answer = generatedtext[indexpinned + len("so the answer is ") : indexperiod] 
+        if accelerator.is_main_process: 
+            if answer == expectedanswer: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
+            else: 
+                print(colored("Answer {} expected {}".format(answer, expectedanswer), "red")) 
+        return int(answer == expectedanswer) 
     else: 
         raise ValueError("Unknown dataset {}".format(datasetname)) 
 
