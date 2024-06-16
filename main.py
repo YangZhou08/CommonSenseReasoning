@@ -286,7 +286,7 @@ def criteriaoutput(datasetname, outputs, inputexample):
         return int(answer == expectedanswer) 
     elif datasetname == "aqua": 
         expectedanswer = inputexample["correct"] 
-        expectedanswer = expectedanswer.lower() 
+        expectedanswer = expectedanswer[0].lower() 
         generatedtext = tokenizer.decode(outputs) 
         generatedtext = generatedtext.lower() 
         indexpinned = generatedtext.find("so the answer is ") 
