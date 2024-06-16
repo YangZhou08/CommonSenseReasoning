@@ -291,7 +291,8 @@ def criteriaoutput(datasetname, outputs, inputexample):
         generatedtext = generatedtext.lower() 
         indexpinned = generatedtext.find("so the answer is ") 
         indexperiod = generatedtext.find(".", indexpinned) 
-        answer = generatedtext[indexpinned + len("so the answer is ") : indexperiod][1] 
+        answer = generatedtext[indexpinned + len("so the answer is ") : indexperiod] 
+        answer = answer if len(answer) == 1 else answer[1] 
         if accelerator.is_main_process: 
             if answer == expectedanswer: 
                 print(colored("Answer {} expected {}".format(answer, expectedanswer), "green")) 
