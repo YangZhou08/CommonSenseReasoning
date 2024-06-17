@@ -468,6 +468,7 @@ for task in tasks:
     # print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(task, total_step, num_step, aal, num_sentence, totalgenerationlength, averagegenerationlength, total_roll_back_length_error, errorinstance, averagerollbacklengtherror)) 
 
     # Print table
+    print(data, headers) 
     print(tabulate(data, headers=headers, tablefmt="grid")) 
     countaccum[task] = [totalexamples, correctanswers, correctanswers / totalexamples] 
 
