@@ -139,7 +139,6 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
                 return example 
             datasetdummy = datasetdummy.map(addingsignal) 
             dataset = concatenate_datasets([dataset, datasetdummy]) 
-            exit(0) 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
         def encodewithtokenizer(example): 
             options = example["options"] 
