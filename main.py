@@ -84,6 +84,20 @@ model.eval()
 if is_distributed: 
     model = accelerator.prepare(model) 
 
+def compensatingdataset(dataset): 
+    if len(dataset) % accelerator.num_processes == 0 or not is_distributed: 
+        return dataset 
+    else: 
+        lengthdummy = accelerator.num_processes - (len(dataset) % accelerator.num_processes) 
+        datasetdummy = dataset.copy() 
+        datasetdummy = datasetdummy.select(range(lengthdummy)) 
+        def addingsignal(example): 
+            example["keep"] = "n" 
+            return example 
+        datasetdummy = datasetdummy.map(addingsignal) 
+        dataset = concatenate_datasets([dataset, datasetdummy]) 
+        return dataset 
+
 ### Loading the datasets ### 
 def get_dataset(datasetname, is_distributed = False, requirements = ""): 
     # loading the manually written cot prompt 
@@ -98,10 +112,14 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             dataset = load_dataset("tau/commonsense_qa", split = "validation") 
         else: 
             dataset = load_dataset("tau/commonsense_qa", split = "validation[:{}]".format(args.limit)) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset) 
         def encodewithtokenizer(example): 
             options = example["choices"]["text"] 
             inputtext = "Q: {}\nOptions: (a) {} (b) {} (c) {} (d) {} (e) {}\nA:".format(example["question"], options[0], options[1], options[2], options[3], options[4]) 
-            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+            outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+            outputdi["keep"] = "y" 
+            return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
         print("length of dataset: ", len(dataset)) 
     elif datasetname == "strategyqa": 
@@ -109,42 +127,50 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation") 
         else: 
             dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation[:{}]".format(args.limit)) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset) 
         def encodewithtokenizer(example): 
             inputtext = "Q: Yes or No: {}".format(example["inputs"][3 :]) 
-            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+            outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+            outputdi["keep"] = "y" 
+            return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     elif datasetname == "date": 
         dataset = load_dataset("tasksource/bigbench", "date_understanding") 
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset) 
         def encodewithtokenizer(example): 
             inputtext = example["inputs"] 
-            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+            outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+            outputdi["keep"] = "y" 
+            return outputdi 
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     elif datasetname == "sports": 
         dataset = load_dataset("tasksource/bigbench", "sports_understanding") 
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset) 
         def encodewithtokenizer(example): 
             # inputtext = "Q: {}".format(example["inputs"]) 
             inputtext = "Q: {}\nA:".format(example["inputs"]) 
-            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+            outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+            outputdi["keep"] = "y" 
+            return outputdi 
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     elif datasetname == "aqua": 
         dataset = load_dataset("deepmind/aqua_rat", split = "test") 
         if is_distributed: 
-            lengthdummy = accelerator.num_processes - (len(dataset) % accelerator.num_processes) 
-            datasetdummy = load_dataset("deepmind/aqua_rat", split = "test[:{}]".format(lengthdummy)) 
-            def addingsignal(example): 
-                example["correct"] = "Skip" 
-                return example 
-            datasetdummy = datasetdummy.map(addingsignal) 
-            dataset = concatenate_datasets([dataset, datasetdummy]) 
+            dataset = compensatingdataset(dataset) 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
         def encodewithtokenizer(example): 
             options = example["options"] 
             inputtext = "Q: {}\nOptions: (a) {} (b) {} (c) {} (d) {} (e) {}\nA:".format(example["question"], options[0][2 : ], options[1][2 : ], options[2][2 : ], options[3][2 : ], options[4][2 : ]) 
-            return tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+            outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
+            outputdi["keep"] = "y" 
+            return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     else: 
         raise ValueError("Unknown dataset {}".format(datasetname)) 
@@ -345,7 +371,7 @@ for task in tasks:
     
     for i, batch in enumerate(tqdm(dataloader)): 
         print("batch[correct] {}".format(batch["correct"])) 
-        if batch["correct"][0] == "Skip": 
+        if batch["keep"][0] == "n": 
             print(colored("Skipping the batch", "yellow")) 
             continue 
         # print("answer found {}".format("answerKey" in batch.keys())) 
