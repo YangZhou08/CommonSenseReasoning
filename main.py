@@ -314,6 +314,10 @@ def criteriaoutput(datasetname, outputs, inputexample):
 print("tasks {}".format(tasks)) 
 countaccum = {} 
 for task in tasks: 
+    if is_distributed: 
+        model.module.updatestatistic() 
+    else: 
+        model.updatestatistics() 
     # dataloader, cotprompt = get_dataset(task, requirements = "_5shot") 
     if args.shotfive: 
         dataloader, cotprompt = get_dataset(task, is_distributed = is_distributed, requirements = "_5shot") 
@@ -399,3 +403,26 @@ if accelerator.is_main_process:
     print("Task\tTotal\tCorrect\tSolve Rate") 
     for task in tasks: 
         print("{}\t{}\t{}\t{}".format(task, countaccum[task][0], countaccum[task][1], countaccum[task][2])) 
+    print("Here are the statistics for inference") 
+    '''
+    if is_distributed: 
+        total_step = model.module.total_steps 
+        num_step = model.module.num_steps 
+        aal = total_step / num_step 
+        num_sentence = model.module.num_sentence 
+        totalgenerationlength = model.module.totalgenerationlength 
+        averagegenerationlength = totalgenerationlength / num_sentence 
+        total_roll_back_length_error = model.module.total_roll_back_length_error 
+        errorinstance = model.module.errorinstance 
+        averagerollbacklengtherror = total_roll_back_length_error / errorinstance 
+    else: 
+        total_step = model.total_steps 
+        num_step = model.num_steps 
+        aal = total_step / num_step 
+        num_sentence = model.num_sentence 
+        totalgenerationlength = model.totalgenerationlength 
+        averagegenerationlength = totalgenerationlength / num_sentence 
+        total_roll_back_length_error = model.total_roll_back_length_error 
+        errorinstance = model.errorinstance 
+        averagerollbacklengtherror = total_roll_back_length_error / errorinstance 
+    ''' 
