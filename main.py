@@ -448,8 +448,8 @@ for task in tasks:
             total_step = totalsteps[0].item() 
             num_step = totalsteps[1].item() 
             aal = total_step / num_step 
-            headers += ["Task", "Total Steps", "Num Steps", "AAL"] 
-            data += [task, total_step, num_step, aal] 
+            headers += ["Total Steps", "Num Steps", "AAL"] 
+            data += [total_step, num_step, aal] 
             total_roll_back_length_error = model.module.total_roll_back_length_error 
             errorinstance = model.module.errorinstance 
             totalrollbacklengtherrors = torch.tensor([total_roll_back_length_error, errorinstance], device = args.device) 
@@ -459,6 +459,7 @@ for task in tasks:
             averagerollbacklengtherror = total_roll_back_length_error / errorinstance 
             headers += ["Total Roll Back Length Error", "Error Instance", "Average Roll Back Length Error"] 
             data += [total_roll_back_length_error, errorinstance, averagerollbacklengtherror] 
+            np.save("{}_rollbacklengthinerror_{}.npy".format(task, accelerator.process_index), np.array(model.module.rollbacklengthinerror)) 
     else: 
         num_sentence = model.num_sentence 
         totalgenerationlength = model.totalgenerationlength 
@@ -476,6 +477,7 @@ for task in tasks:
             averagerollbacklengtherror = total_roll_back_length_error / errorinstance 
             headers += ["Total Roll Back Length Error", "Error Instance", "Average Roll Back Length Error"] 
             data += [total_roll_back_length_error, errorinstance, averagerollbacklengtherror] 
+            np.save("{}_rollbacklengthinerror.npy".format(task), np.array(model.roll_back_length_in_error)) 
     # print("Task\tTotal Steps\tNum Steps\tAAL\tNum Sentence\tTotal Generation Length\tAverage Generation Length\tTotal Roll Back Length Error\tError Instance\tAverage Roll Back Length Error") 
     # print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(task, total_step, num_step, aal, num_sentence, totalgenerationlength, averagegenerationlength, total_roll_back_length_error, errorinstance, averagerollbacklengtherror)) 
 
