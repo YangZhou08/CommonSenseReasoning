@@ -134,9 +134,10 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         if is_distributed: 
             lengthdummy = accelerator.num_processes - (len(dataset) % accelerator.num_processes) 
             datasetdummy = load_dataset("deepmind/aqua_rat", split = "test[:{}]".format(lengthdummy)) 
-            for i in range(len(datasetdummy)): 
-                datasetdummy[i]["correct"] = "Skip" 
-                print("datasetdummy[correct] {}".format(datasetdummy[i]["correct"])) 
+            def addingsignal(example): 
+                example["correct"] = "Skip" 
+                return example 
+            datasetdummy = datasetdummy.map(addingsignal) 
             dataset = concatenate_datasets([dataset, datasetdummy]) 
             exit(0) 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
