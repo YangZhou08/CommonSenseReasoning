@@ -136,7 +136,9 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             datasetdummy = load_dataset("deepmind/aqua_rat", split = "test[:{}]".format(lengthdummy)) 
             for i in range(len(datasetdummy)): 
                 datasetdummy[i]["correct"] = "Skip" 
+                print("datasetdummy[correct] {}".format(datasetdummy[i]["correct"])) 
             dataset = concatenate_datasets([dataset, datasetdummy]) 
+            exit(0) 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
         def encodewithtokenizer(example): 
             options = example["options"] 
@@ -405,7 +407,7 @@ if accelerator.is_main_process:
     for task in tasks: 
         print("{}\t{}\t{}\t{}".format(task, countaccum[task][0], countaccum[task][1], countaccum[task][2])) 
     print("Here are the statistics for inference") 
-    '''
+    
     if is_distributed: 
         total_step = model.module.total_steps 
         num_step = model.module.num_steps 
@@ -426,4 +428,5 @@ if accelerator.is_main_process:
         total_roll_back_length_error = model.total_roll_back_length_error 
         errorinstance = model.errorinstance 
         averagerollbacklengtherror = total_roll_back_length_error / errorinstance 
-    ''' 
+    print("Task\tTotal Steps\tNum Steps\tAAL\tNum Sentence\tTotal Generation Length\tAverage Generation Length\tTotal Roll Back Length Error\tError Instance\tAverage Roll Back Length Error") 
+    print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(task, total_step, num_step, aal, num_sentence, totalgenerationlength, averagegenerationlength, total_roll_back_length_error, errorinstance, averagerollbacklengtherror)) 
