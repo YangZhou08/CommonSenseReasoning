@@ -15,6 +15,7 @@ from typing import List, Literal, Optional, Tuple, Union
 import argparse 
 from tqdm import tqdm 
 from termcolor import colored 
+from tabulate import tabulate 
 
 ### Parsing the arguments ### 
 parser = argparse.ArgumentParser(description = "CommonSense Reasoning with generation and chain-of-thoughts") 
@@ -429,5 +430,12 @@ if accelerator.is_main_process:
         total_roll_back_length_error = model.total_roll_back_length_error 
         errorinstance = model.errorinstance 
         averagerollbacklengtherror = total_roll_back_length_error / errorinstance 
-    print("Task\tTotal Steps\tNum Steps\tAAL\tNum Sentence\tTotal Generation Length\tAverage Generation Length\tTotal Roll Back Length Error\tError Instance\tAverage Roll Back Length Error") 
-    print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(task, total_step, num_step, aal, num_sentence, totalgenerationlength, averagegenerationlength, total_roll_back_length_error, errorinstance, averagerollbacklengtherror)) 
+    # print("Task\tTotal Steps\tNum Steps\tAAL\tNum Sentence\tTotal Generation Length\tAverage Generation Length\tTotal Roll Back Length Error\tError Instance\tAverage Roll Back Length Error") 
+    # print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(task, total_step, num_step, aal, num_sentence, totalgenerationlength, averagegenerationlength, total_roll_back_length_error, errorinstance, averagerollbacklengtherror)) 
+    headers = ["Task", "Total Steps", "Num Steps", "AAL", "Num Sentence", "Total Generation Length", "Average Generation Length", "Total Roll Back Length Error", "Error Instance", "Average Roll Back Length Error"]
+    data = [
+        [task, total_step, num_step, aal, num_sentence, totalgenerationlength, averagegenerationlength, total_roll_back_length_error, errorinstance, averagerollbacklengtherror]
+    ]
+
+    # Print table
+    print(tabulate(data, headers=headers, tablefmt="grid")) 
