@@ -479,7 +479,8 @@ for task in tasks:
     # print("Task\tTotal Steps\tNum Steps\tAAL\tNum Sentence\tTotal Generation Length\tAverage Generation Length\tTotal Roll Back Length Error\tError Instance\tAverage Roll Back Length Error") 
     # print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(task, total_step, num_step, aal, num_sentence, totalgenerationlength, averagegenerationlength, total_roll_back_length_error, errorinstance, averagerollbacklengtherror)) 
 
-    # Print table
+    # Print table 
+    print("Here are the statistics for inference") 
     if accelerator.is_main_process: 
         print(tabulate([data], headers=headers, tablefmt="grid")) 
     countaccum[task] = [totalexamples, correctanswers, correctanswers / totalexamples] 
@@ -487,7 +488,10 @@ for task in tasks:
 if accelerator.is_main_process: 
     # formatting the output 
     print(args) 
-    print("Task\tTotal\tCorrect\tSolve Rate") 
+    # print("Task\tTotal\tCorrect\tSolve Rate") 
+    headers = ["Task", "Total", "Correct", "Solve Rate"] 
+    data = [] 
     for task in tasks: 
-        print("{}\t{}\t{}\t{}".format(task, countaccum[task][0], countaccum[task][1], countaccum[task][2])) 
-    print("Here are the statistics for inference") 
+        # print("{}\t{}\t{}\t{}".format(task, countaccum[task][0], countaccum[task][1], countaccum[task][2])) 
+        data.append([task, countaccum[task][0], countaccum[task][1], countaccum[task][2]]) 
+    print(tabulate(data, headers = headers, tablefmt = "grid")) 
