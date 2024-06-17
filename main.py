@@ -463,7 +463,7 @@ for task in tasks:
             averagerollbacklengtherror = total_roll_back_length_error / errorinstance 
             headers += ["Total Roll Back Length Error", "Error Instance", "Average Roll Back Length Error"] 
             data += [total_roll_back_length_error, errorinstance, averagerollbacklengtherror] 
-            np.save("{}_rollbacklengthinerror_{}.npy".format(task, accelerator.process_index), np.array(model.module.rollbacklengthinerror)) 
+            np.save("{}_rollbacklengthinerror_{}.npy".format(task, accelerator.process_index), np.array(model.module.roll_back_length_in_error)) 
     else: 
         num_sentence = model.num_sentence 
         totalgenerationlength = model.totalgenerationlength 
