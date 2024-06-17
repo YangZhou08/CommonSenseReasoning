@@ -344,7 +344,8 @@ for task in tasks:
     
     for i, batch in enumerate(tqdm(dataloader)): 
         print("batch[correct] {}".format(batch["correct"])) 
-        if batch["correct"] == "Skip": 
+        if batch["correct"][0] == "Skip": 
+            print(colored("Skipping the batch", "yellow")) 
             continue 
         # print("answer found {}".format("answerKey" in batch.keys())) 
         # print(batch["answerKey"][0]) 
