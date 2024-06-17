@@ -161,7 +161,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     elif datasetname == "aqua": 
-        dataset = load_dataset("deepmind/aqua_rat", split = "test[:20]") 
+        dataset = load_dataset("deepmind/aqua_rat", split = "test") 
         if is_distributed: 
             dataset = compensatingdataset(dataset) 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
