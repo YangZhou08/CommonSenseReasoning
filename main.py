@@ -341,6 +341,7 @@ for task in tasks:
     ''' 
     
     for i, batch in enumerate(tqdm(dataloader)): 
+        print("batch[correct] {}".format(batch["correct"])) 
         if batch["correct"] == "Skip": 
             continue 
         # print("answer found {}".format("answerKey" in batch.keys())) 
