@@ -433,17 +433,29 @@ for task in tasks:
     if is_distributed: 
         num_sentence = model.module.num_sentence 
         totalgenerationlength = model.module.totalgenerationlength 
+        numsentences = torch.tensor([num_sentence, totalgenerationlength], device = args.device) 
+        dist.all_reduce(numsentences, op = dist.ReduceOp.SUM) 
+        num_sentence = numsentences[0].item() 
+        totalgenerationlength = numsentences[1].item() 
         averagegenerationlength = totalgenerationlength / num_sentence 
         headers += ["Num Sentence", "Total Generation Length", "Average Generation Length"] 
         data += [num_sentence, totalgenerationlength, averagegenerationlength] 
         if args.check: 
             total_step = model.module.total_steps 
             num_step = model.module.num_steps 
+            totalsteps = torch.tensor([total_step, num_step], device = args.device) 
+            dist.all_reduce(totalsteps, op = dist.ReduceOp.SUM) 
+            total_step = totalsteps[0].item() 
+            num_step = totalsteps[1].item() 
             aal = total_step / num_step 
             headers += ["Task", "Total Steps", "Num Steps", "AAL"] 
             data += [task, total_step, num_step, aal] 
             total_roll_back_length_error = model.module.total_roll_back_length_error 
             errorinstance = model.module.errorinstance 
+            totalrollbacklengtherrors = torch.tensor([total_roll_back_length_error, errorinstance], device = args.device) 
+            dist.all_reduce(totalrollbacklengtherrors, op = dist.ReduceOp.SUM) 
+            total_roll_back_length_error = totalrollbacklengtherrors[0].item() 
+            errorinstance = totalrollbacklengtherrors[1].item() 
             averagerollbacklengtherror = total_roll_back_length_error / errorinstance 
             headers += ["Total Roll Back Length Error", "Error Instance", "Average Roll Back Length Error"] 
             data += [total_roll_back_length_error, errorinstance, averagerollbacklengtherror] 
@@ -468,8 +480,8 @@ for task in tasks:
     # print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(task, total_step, num_step, aal, num_sentence, totalgenerationlength, averagegenerationlength, total_roll_back_length_error, errorinstance, averagerollbacklengtherror)) 
 
     # Print table
-    print(data, headers) 
-    print(tabulate([data], headers=headers, tablefmt="grid")) 
+    if accelerator.is_main_process: 
+        print(tabulate([data], headers=headers, tablefmt="grid")) 
     countaccum[task] = [totalexamples, correctanswers, correctanswers / totalexamples] 
 
 if accelerator.is_main_process: 
