@@ -131,6 +131,11 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
     elif datasetname == "aqua": 
         dataset = load_dataset("deepmind/aqua_rat", split = "test") 
+        if is_distributed: 
+            datasetdummy = load_dataset("deepmind/aqua_rat", split = "test[:{}]").format(accelerator.num_processes - (len(dataset) % accelerator.num_processes)) 
+            for i in range(len(datasetdummy)): 
+                datasetdummy[i]["correct"] = "Skip" 
+            dataset = concatenate_datasets([dataset, datasetdummy]) 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
         def encodewithtokenizer(example): 
             options = example["options"] 
@@ -331,7 +336,8 @@ for task in tasks:
     ''' 
     
     for i, batch in enumerate(tqdm(dataloader)): 
-        print("localrank {} length of batch {}".format(accelerator.process_index, len(dataloader))) 
+        if batch["correct"][0] == "Skip": 
+            continue 
         # print("answer found {}".format("answerKey" in batch.keys())) 
         # print(batch["answerKey"][0]) 
         # print(len(batch["answerKey"])) 
