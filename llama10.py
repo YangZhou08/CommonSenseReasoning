@@ -855,6 +855,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.num_steps = 0
         self.num_sentence = 0 
         self.totalgenerationlength = 0 
+        self.total_roll_back_length_error = 0 
         self.verbose = False # manually set to false during measurement 
         
         # for bug debugging investigation only 
@@ -888,6 +889,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.num_sentence = 0 
         self.total_steps = 0 
         self.totalgenerationlength = 0 
+        self.total_roll_back_length_error = 0 
 
     def forward(
         self,
@@ -1348,7 +1350,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     last_check = input_ids.shape[1] 
                     self.num_steps += 1 
                     self.total_steps += lengthaccepts + 1 
-                    
+                    if lengthaccepts != checklength - 1: 
+                        self.total_roll_back_length_error += (checklength - 1 - lengthaccepts)  
                     if step == 0: # although not needed every time, good to have here 
                         approve_quit = True 
                 

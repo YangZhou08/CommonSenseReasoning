@@ -132,8 +132,8 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
     elif datasetname == "aqua": 
         dataset = load_dataset("deepmind/aqua_rat", split = "test") 
         if is_distributed: 
-            datasetdummy = load_dataset("deepmind/aqua_rat", split = "test[:2]") 
-            # .format(accelerator.num_processes - (len(dataset) % accelerator.num_processes)) 
+            lengthdummy = accelerator.num_processes - (len(dataset) % accelerator.num_processes) 
+            datasetdummy = load_dataset("deepmind/aqua_rat", split = "test[:{}]".format(lengthdummy)) 
             for i in range(len(datasetdummy)): 
                 datasetdummy[i]["correct"] = "Skip" 
             dataset = concatenate_datasets([dataset, datasetdummy]) 
@@ -337,7 +337,7 @@ for task in tasks:
     ''' 
     
     for i, batch in enumerate(tqdm(dataloader)): 
-        if batch["correct"][0] == "Skip": 
+        if batch["correct"] == "Skip": 
             continue 
         # print("answer found {}".format("answerKey" in batch.keys())) 
         # print(batch["answerKey"][0]) 
