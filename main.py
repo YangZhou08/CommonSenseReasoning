@@ -428,8 +428,8 @@ for task in tasks:
         correctanswers = correctanswers.item() 
     
     # statistics 
-    headers = [] 
-    data = [] 
+    headers = ["Task"] 
+    data = [task] 
     if is_distributed: 
         num_sentence = model.module.num_sentence 
         totalgenerationlength = model.module.totalgenerationlength 
@@ -457,8 +457,8 @@ for task in tasks:
             total_step = model.total_steps 
             num_step = model.num_steps 
             aal = total_step / num_step 
-            headers += ["Task", "Total Steps", "Num Steps", "AAL"] 
-            data += [task, total_step, num_step, aal] 
+            headers += ["Total Steps", "Num Steps", "AAL"] 
+            data += [total_step, num_step, aal] 
             total_roll_back_length_error = model.total_roll_back_length_error 
             errorinstance = model.errorinstance 
             averagerollbacklengtherror = total_roll_back_length_error / errorinstance 
@@ -469,7 +469,7 @@ for task in tasks:
 
     # Print table
     print(data, headers) 
-    print(tabulate(data, headers=headers, tablefmt="grid")) 
+    print(tabulate([data], headers=headers, tablefmt="grid")) 
     countaccum[task] = [totalexamples, correctanswers, correctanswers / totalexamples] 
 
 if accelerator.is_main_process: 
