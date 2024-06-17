@@ -10,12 +10,14 @@ from transformers import AutoTokenizer
 from llama10 import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
 import numpy as np 
 from datasets import concatenate_datasets 
+from datasets import Dataset 
 from torch.utils.data import DataLoader 
 from typing import List, Literal, Optional, Tuple, Union 
 import argparse 
 from tqdm import tqdm 
 from termcolor import colored 
 from tabulate import tabulate 
+import copy 
 
 ### Parsing the arguments ### 
 parser = argparse.ArgumentParser(description = "CommonSense Reasoning with generation and chain-of-thoughts") 
@@ -89,7 +91,9 @@ def compensatingdataset(dataset):
         return dataset 
     else: 
         lengthdummy = accelerator.num_processes - (len(dataset) % accelerator.num_processes) 
-        datasetdummy = dataset.copy() 
+        # datasetdummy = dataset.copy() 
+        data_dict = dataset.to_dict() 
+        datasetdummy = Dataset.from_dict(copy.deepcopy(data_dict)) 
         datasetdummy = datasetdummy.select(range(lengthdummy)) 
         def addingsignal(example): 
             example["keep"] = "n" 
