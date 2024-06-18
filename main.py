@@ -122,8 +122,6 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             dataset = load_dataset("tau/commonsense_qa", split = "validation") 
         else: 
             dataset = load_dataset("tau/commonsense_qa", split = "validation[:{}]".format(args.limit)) 
-        if is_distributed: 
-            dataset = compensatingdataset(dataset) 
         def encodewithtokenizer(example): 
             options = example["choices"]["text"] 
             inputtext = "Q: {}\nOptions: (a) {} (b) {} (c) {} (d) {} (e) {}\nA:".format(example["question"], options[0], options[1], options[2], options[3], options[4]) 
@@ -131,25 +129,25 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             outputdi["keep"] = "y" 
             return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset) 
         print("length of dataset: ", len(dataset)) 
     elif datasetname == "strategyqa": 
         if args.limit is None: 
             dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation") 
         else: 
             dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation[:{}]".format(args.limit)) 
-        if is_distributed: 
-            dataset = compensatingdataset(dataset) 
         def encodewithtokenizer(example): 
             inputtext = "Q: Yes or No: {}".format(example["inputs"][3 :]) 
             outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
             outputdi["keep"] = "y" 
             return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset) 
     elif datasetname == "date": 
         dataset = load_dataset("tasksource/bigbench", "date_understanding") 
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
-        if is_distributed: 
-            dataset = compensatingdataset(dataset) 
         def encodewithtokenizer(example): 
             inputtext = example["inputs"] 
             outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
@@ -157,11 +155,11 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             return outputdi 
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset) 
     elif datasetname == "sports": 
         dataset = load_dataset("tasksource/bigbench", "sports_understanding") 
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
-        if is_distributed: 
-            dataset = compensatingdataset(dataset) 
         def encodewithtokenizer(example): 
             # inputtext = "Q: {}".format(example["inputs"]) 
             inputtext = "Q: {}\nA:".format(example["inputs"]) 
@@ -170,10 +168,10 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             return outputdi 
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
-    elif datasetname == "aqua": 
-        dataset = load_dataset("deepmind/aqua_rat", split = "test") 
         if is_distributed: 
             dataset = compensatingdataset(dataset) 
+    elif datasetname == "aqua": 
+        dataset = load_dataset("deepmind/aqua_rat", split = "test") 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
         def encodewithtokenizer(example): 
             options = example["options"] 
@@ -182,6 +180,8 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             outputdi["keep"] = "y" 
             return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset) 
     else: 
         raise ValueError("Unknown dataset {}".format(datasetname)) 
     
