@@ -133,7 +133,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
         if is_distributed: 
-            dataset = compensatingdataset(dataset) 
+            dataset = compensatingdataset(dataset, datasetname) 
         print("length of dataset: ", len(dataset)) 
     elif datasetname == "strategyqa": 
         if args.limit is None: 
@@ -147,7 +147,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
         if is_distributed: 
-            dataset = compensatingdataset(dataset) 
+            dataset = compensatingdataset(dataset, datasetname) 
     elif datasetname == "date": 
         dataset = load_dataset("tasksource/bigbench", "date_understanding") 
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
@@ -159,7 +159,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
         if is_distributed: 
-            dataset = compensatingdataset(dataset) 
+            dataset = compensatingdataset(dataset, datasetname) 
     elif datasetname == "sports": 
         dataset = load_dataset("tasksource/bigbench", "sports_understanding") 
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
@@ -172,7 +172,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
         if is_distributed: 
-            dataset = compensatingdataset(dataset) 
+            dataset = compensatingdataset(dataset, datasetname) 
     elif datasetname == "aqua": 
         dataset = load_dataset("deepmind/aqua_rat", split = "test") 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
@@ -184,7 +184,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
         if is_distributed: 
-            dataset = compensatingdataset(dataset) 
+            dataset = compensatingdataset(dataset, datasetname) 
     else: 
         raise ValueError("Unknown dataset {}".format(datasetname)) 
     
