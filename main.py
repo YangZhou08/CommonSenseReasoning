@@ -94,17 +94,21 @@ def compensatingdataset(dataset):
         # datasetdummy = dataset.copy() 
         data_dict = dataset.to_dict() 
         datasetdummy = Dataset.from_dict(copy.deepcopy(data_dict)) 
+        essentialkeys = [] 
         for i in range(len(datasetdummy)): 
             print("datasetdummy ", list(datasetdummy[i].keys())) 
             break 
         for i in range(len(dataset)): 
             print("dataset ", list(dataset[i].keys())) 
+            essentialkeys = list(dataset[i].keys()) 
             break 
         datasetdummy = datasetdummy.select(range(lengthdummy)) 
         def addingsignal(example): 
             example["keep"] = "n" 
             return example 
         datasetdummy = datasetdummy.map(addingsignal) 
+        dataset = dataset.set_format([essentialkeys]) 
+        datasetdummy = datasetdummy.set_format([essentialkeys]) 
         dataset = concatenate_datasets([dataset, datasetdummy]) 
         return dataset 
 
