@@ -96,6 +96,10 @@ def compensatingdataset(dataset):
         datasetdummy = Dataset.from_dict(copy.deepcopy(data_dict)) 
         for i in range(len(datasetdummy)): 
             print(datasetdummy[i].keys()) 
+            break 
+        for i in range(len(dataset)): 
+            print(dataset[i].keys()) 
+            break 
         datasetdummy = datasetdummy.select(range(lengthdummy)) 
         def addingsignal(example): 
             example["keep"] = "n" 
