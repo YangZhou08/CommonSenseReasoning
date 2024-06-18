@@ -106,6 +106,8 @@ def compensatingdataset(dataset):
         def addingsignal(example): 
             example["keep"] = "n" 
             return example 
+        if "id" in essentialkeys: 
+            essentialkeys.remove("id") 
         datasetdummy = datasetdummy.map(addingsignal) 
         dataset = dataset.set_format(columns = essentialkeys) 
         datasetdummy = datasetdummy.set_format(columns = essentialkeys) 
