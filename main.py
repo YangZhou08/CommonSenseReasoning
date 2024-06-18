@@ -93,15 +93,15 @@ def compensatingdataset(dataset, datasetname):
         lengthdummy = accelerator.num_processes - (len(dataset) % accelerator.num_processes) 
         # datasetdummy = dataset.copy() 
         if datasetname == "csqa": 
-            dataset = load_dataset("tau/commonsense_qa", split = "validation[:{}]".format(lengthdummy)) 
+            datasetdummy = load_dataset("tau/commonsense_qa", split = "validation[:{}]".format(lengthdummy)) 
         elif datasetname == "strategyqa": 
-            dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation[:{}]".format(lengthdummy)) 
+            datasetdummy = load_dataset("tasksource/bigbench", "strategyqa", split = "validation[:{}]".format(lengthdummy)) 
         elif datasetname == "date": 
-            dataset = load_dataset("tasksource/bigbench", "date_understanding", split = "train[:{}]".format(lengthdummy)) 
+            datasetdummy = load_dataset("tasksource/bigbench", "date_understanding", split = "train[:{}]".format(lengthdummy)) 
         elif datasetname == "sports": 
-            dataset = load_dataset("tasksource/bigbench", "sports_understanding", split = "train[:{}]".format(lengthdummy)) 
+            datasetdummy = load_dataset("tasksource/bigbench", "sports_understanding", split = "train[:{}]".format(lengthdummy)) 
         elif datasetname == "aqua": 
-            dataset = load_dataset("deepmind/aqua_rat", split = "test[:{}]".format(lengthdummy)) 
+            datasetdummy = load_dataset("deepmind/aqua_rat", split = "test[:{}]".format(lengthdummy)) 
         else: 
             raise ValueError("Unknown dataset {}".format(datasetname)) 
         def addingsignal(example): 
