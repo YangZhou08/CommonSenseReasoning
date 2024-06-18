@@ -86,31 +86,28 @@ model.eval()
 if is_distributed: 
     model = accelerator.prepare(model) 
 
-def compensatingdataset(dataset): 
+def compensatingdataset(dataset, datasetname): 
     if len(dataset) % accelerator.num_processes == 0 or not is_distributed: 
         return dataset 
     else: 
         lengthdummy = accelerator.num_processes - (len(dataset) % accelerator.num_processes) 
         # datasetdummy = dataset.copy() 
-        data_dict = dataset.to_dict() 
-        datasetdummy = Dataset.from_dict(copy.deepcopy(data_dict)) 
-        essentialkeys = [] 
-        for i in range(len(datasetdummy)): 
-            print("datasetdummy ", list(datasetdummy[i].keys())) 
-            break 
-        for i in range(len(dataset)): 
-            print("dataset ", list(dataset[i].keys())) 
-            essentialkeys = list(dataset[i].keys()) 
-            break 
-        datasetdummy = datasetdummy.select(range(lengthdummy)) 
+        if datasetname == "csqa": 
+            dataset = load_dataset("tau/commonsense_qa", split = "validation[:{}]".format(lengthdummy)) 
+        elif datasetname == "strategyqa": 
+            dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation[:{}]".format(lengthdummy)) 
+        elif datasetname == "date": 
+            dataset = load_dataset("tasksource/bigbench", "date_understanding", split = "train[:{}]".format(lengthdummy)) 
+        elif datasetname == "sports": 
+            dataset = load_dataset("tasksource/bigbench", "sports_understanding", split = "train[:{}]".format(lengthdummy)) 
+        elif datasetname == "aqua": 
+            dataset = load_dataset("deepmind/aqua_rat", split = "test[:{}]".format(lengthdummy)) 
+        else: 
+            raise ValueError("Unknown dataset {}".format(datasetname)) 
         def addingsignal(example): 
             example["keep"] = "n" 
             return example 
-        if "id" in essentialkeys: 
-            essentialkeys.remove("id") 
         datasetdummy = datasetdummy.map(addingsignal) 
-        dataset = dataset.set_format(columns = essentialkeys) 
-        datasetdummy = datasetdummy.set_format(columns = essentialkeys) 
         dataset = concatenate_datasets([dataset, datasetdummy]) 
         return dataset 
 
