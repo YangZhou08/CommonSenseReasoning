@@ -107,7 +107,7 @@ def compensatingdataset(dataset):
             example["keep"] = "n" 
             return example 
         datasetdummy = datasetdummy.map(addingsignal) 
-        dataset = dataset.set_format([essentialkeys]) 
+        dataset = dataset.set_format(essentialkeys) 
         datasetdummy = datasetdummy.set_format([essentialkeys]) 
         dataset = concatenate_datasets([dataset, datasetdummy]) 
         return dataset 
