@@ -383,7 +383,6 @@ for task in tasks:
     ''' 
     
     for i, batch in enumerate(tqdm(dataloader)): 
-        print("batch[correct] {}".format(batch["correct"])) 
         if batch["keep"][0] == "n": 
             print(colored("Skipping the batch", "yellow")) 
             continue 
