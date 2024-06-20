@@ -183,8 +183,8 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             outputdi["keep"] = "y" 
             return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
-        if is_distributed: 
-            dataset = compensatingdataset(dataset, datasetname) 
+        # if is_distributed: 
+            # dataset = compensatingdataset(dataset, datasetname) 
     else: 
         raise ValueError("Unknown dataset {}".format(datasetname)) 
     
