@@ -192,7 +192,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
         
     elif datasetname == "aqua": 
-        dataset = load_dataset("deepmind/aqua_rat", split = "test[:50]") 
+        dataset = load_dataset("deepmind/aqua_rat", split = "test") 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
         def annotatedataset(example): 
             newentry = {} 
