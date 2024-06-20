@@ -125,66 +125,88 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
             dataset = load_dataset("tau/commonsense_qa", split = "validation") 
         else: 
             dataset = load_dataset("tau/commonsense_qa", split = "validation[:{}]".format(args.limit)) 
+        def annotatedataset(example): 
+            newentry = {} 
+            newentry["keep"] = "y" 
+            return newentry 
+        dataset = dataset.map(annotatedataset, num_proc = 8) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset, datasetname) 
         def encodewithtokenizer(example): 
             options = example["choices"]["text"] 
             inputtext = "Q: {}\nOptions: (a) {} (b) {} (c) {} (d) {} (e) {}\nA:".format(example["question"], options[0], options[1], options[2], options[3], options[4]) 
             outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
-            outputdi["keep"] = "y" 
             return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
-        if is_distributed: 
-            dataset = compensatingdataset(dataset, datasetname) 
+        
         print("length of dataset: ", len(dataset)) 
     elif datasetname == "strategyqa": 
         if args.limit is None: 
             dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation") 
         else: 
             dataset = load_dataset("tasksource/bigbench", "strategyqa", split = "validation[:{}]".format(args.limit)) 
+        def annotatedataset(example): 
+            newentry = {} 
+            newentry["keep"] = "y" 
+            return newentry 
+        dataset = dataset.map(annotatedataset, num_proc = 8) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset, datasetname) 
         def encodewithtokenizer(example): 
             inputtext = "Q: Yes or No: {}".format(example["inputs"][3 :]) 
             outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
-            outputdi["keep"] = "y" 
             return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
-        if is_distributed: 
-            dataset = compensatingdataset(dataset, datasetname) 
     elif datasetname == "date": 
         dataset = load_dataset("tasksource/bigbench", "date_understanding") 
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
+        def annotatedataset(example): 
+            newentry = {} 
+            newentry["keep"] = "y" 
+            return newentry 
+        dataset = dataset.map(annotatedataset, num_proc = 8) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset, datasetname) 
         def encodewithtokenizer(example): 
             inputtext = example["inputs"] 
             outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
-            outputdi["keep"] = "y" 
             return outputdi 
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
-        if is_distributed: 
-            dataset = compensatingdataset(dataset, datasetname) 
     elif datasetname == "sports": 
         dataset = load_dataset("tasksource/bigbench", "sports_understanding") 
         dataset = concatenate_datasets([dataset["train"], dataset["validation"]]) 
+        def annotatedataset(example): 
+            newentry = {} 
+            newentry["keep"] = "y" 
+            return newentry 
+        dataset = dataset.map(annotatedataset, num_proc = 8) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset, datasetname) 
         def encodewithtokenizer(example): 
             # inputtext = "Q: {}".format(example["inputs"]) 
             inputtext = "Q: {}\nA:".format(example["inputs"]) 
             outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
-            outputdi["keep"] = "y" 
             return outputdi 
         dataset = dataset.select(range(10, len(dataset))) 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
-        if is_distributed: 
-            dataset = compensatingdataset(dataset, datasetname) 
+        
     elif datasetname == "aqua": 
         dataset = load_dataset("deepmind/aqua_rat", split = "test[:50]") 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
+        def annotatedataset(example): 
+            newentry = {} 
+            newentry["keep"] = "y" 
+            return newentry 
+        dataset = dataset.map(annotatedataset, num_proc = 8) 
+        if is_distributed: 
+            dataset = compensatingdataset(dataset, datasetname) 
         def encodewithtokenizer(example): 
             options = example["options"] 
             inputtext = "Q: {}\nOptions: (a) {} (b) {} (c) {} (d) {} (e) {}\nA:".format(example["question"], options[0][2 : ], options[1][2 : ], options[2][2 : ], options[3][2 : ], options[4][2 : ]) 
             outputdi = tokenizer(inputtext, return_tensors = "pt", truncation = True, padding = False, add_special_tokens = False) 
-            outputdi["keep"] = "y" 
             return outputdi 
         dataset = dataset.map(encodewithtokenizer, num_proc = 8) 
-        # if is_distributed: 
-            # dataset = compensatingdataset(dataset, datasetname) 
     else: 
         raise ValueError("Unknown dataset {}".format(datasetname)) 
     
