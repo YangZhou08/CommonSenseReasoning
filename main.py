@@ -174,7 +174,7 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         if is_distributed: 
             dataset = compensatingdataset(dataset, datasetname) 
     elif datasetname == "aqua": 
-        dataset = load_dataset("deepmind/aqua_rat", split = "test") 
+        dataset = load_dataset("deepmind/aqua_rat", split = "test[:50]") 
         # dataset = concatenate_datasets([dataset["validation"], dataset["test"]]) 
         def encodewithtokenizer(example): 
             options = example["options"] 
