@@ -82,11 +82,12 @@ model.config.griffin = args.griffin
 model.config.kernel_size = args.kernel_size 
 model.config.thr = args.thr 
 model.config.secondrollback = False 
+model.config.widthtree = args.widthtree # here we set the width of the tree 
 
 if args.griffin: 
     model = get_llama_griffin2(model, schedule_k) 
 if args.cats: 
-    model = get_llama_griffin(model, schedule_k) 
+    model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
 
 model.eval() 
 if is_distributed: 
