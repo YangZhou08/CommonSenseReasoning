@@ -10,7 +10,7 @@ from transformers import AutoTokenizer
 # from llama10 import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
 # from llama12 import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
 from llama12addingtree import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
-from llama12 import LlamaForCausalLM 
+# from llama12 import LlamaForCausalLM 
 import numpy as np 
 from datasets import concatenate_datasets 
 from datasets import Dataset 
