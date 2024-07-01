@@ -422,8 +422,8 @@ for task in tasks:
         input_ids = batch["input_ids"] 
         input_ids = torch.tensor(input_ids, dtype = torch.long) 
         input_ids = input_ids.to(args.device) 
-        if accelerator.is_main_process: 
-            print(tokenizer.decode(input_ids[0])) 
+        # if accelerator.is_main_process: 
+            # print(tokenizer.decode(input_ids[0])) 
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(args.device) 
         # stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
@@ -451,14 +451,14 @@ for task in tasks:
                 do_sample = False, 
             ) 
         # print(tokenizer.decode(outputs[0])) 
-        if accelerator.is_main_process: 
-            print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
+        # if accelerator.is_main_process: 
+            # print(tokenizer.decode(outputs[0][input_ids.shape[1] :])) 
         generatedtext = tokenizer.decode(outputs[0][input_ids.shape[1] :]) 
         checkcriteria = criteriaoutput(task, outputs[0][input_ids.shape[1] :], batch) 
         totalexamples += 1 
         correctanswers += checkcriteria 
-        if accelerator.is_main_process: 
-            print("Total examples: {} Correct answers: {}".format(totalexamples, correctanswers)) 
+        # if accelerator.is_main_process: 
+            # print("Total examples: {} Correct answers: {}".format(totalexamples, correctanswers)) 
     
     if is_distributed: 
         totalexamples = torch.tensor(totalexamples, device = args.device) 
