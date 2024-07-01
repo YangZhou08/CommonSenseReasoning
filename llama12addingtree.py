@@ -1586,8 +1586,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                         if self.verbose: 
                             print(colored("{:.5f} * {:.5f} = {:.5f}".format(torch.exp(model_inputs["active_probs"][i]), torch.exp(outputlogprob), torch.exp(model_inputs["active_probs"][i] + logprob)), color = "light_green"), flush = True) 
                             print(colored("({}, {}, {})".format(self.tokenizer.decode(extended_input_ids[0, initial_len :]), logprob, i), color = "yellow"), flush = True) 
-                        # if torch.exp(outputlogprob) > 0.95: 
-                        #     break 
+                        if torch.exp(outputlogprob) > 0.95: 
+                            break 
                 # prune 
                 all_sequences = sorted(all_sequences, key = lambda x: x[1], reverse = True) 
                 self.beam = [] 
