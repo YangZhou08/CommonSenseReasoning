@@ -78,12 +78,15 @@ if TYPE_CHECKING:
 
 from termcolor import colored 
 
+import numpy as np 
+
 
 NEED_SETUP_CACHE_CLASSES_MAPPING = {
     "static": StaticCache,
 }
 
 from transformers.generation.utils import GenerateOutput, GenerateDecoderOnlyOutput, GenerateNonBeamOutput, GenerateEncoderDecoderOutput
+import time 
 def select_neurons(neuron_stat, method, k):
     if method == 'topk':
         weight, indices = torch.topk(neuron_stat, k, dim=-1)
@@ -104,10 +107,10 @@ def select_neurons(neuron_stat, method, k):
         raise NotImplementedError
 
     return weight, indices
-def get_llama_griffin(model,  k_schedule):
+def get_llama_griffin(model,  k_schedule, patternstrict): 
     config = model.config
     for i, l in enumerate(model.model.layers):
-        new_mlp = GriffinLlamaMLP(config, k_schedule[i])
+        new_mlp = GriffinLlamaMLP(config, k_schedule[i], patternstrict) 
         new_mlp.gate_proj = l.mlp.gate_proj
         new_mlp.up_proj = l.mlp.up_proj
         new_mlp.down_proj = l.mlp.down_proj
@@ -149,8 +152,33 @@ def get_llama_griffin2(model,  k_schedule):
         l.mlp = new_mlp
     
     return model
+
+def get_llama_griffin3(model,  k_schedule):
+    config = model.config
+    for i, l in enumerate(model.model.layers):
+        # new_mlp = GriffinLlamaMLP2(config, k_schedule[i]) 
+        new_mlp = GriffinLlamaMLP3(config, k_schedule[i], i) 
+        new_mlp.gate_proj = l.mlp.gate_proj
+        new_mlp.up_proj = l.mlp.up_proj
+        new_mlp.down_proj = l.mlp.down_proj
+        new_mlp.act_fn = l.mlp.act_fn
+
+        if config.selection_method == 'magnitude':
+            assert k_schedule[i] > 0.0
+            gate_stat = l.mlp.gate_proj.weight.data.norm(dim=1)
+            up_stat = l.mlp.up_proj.weight.data.norm(dim=1)
+            stat = (gate_stat * up_stat).unsqueeze(0)
+            _, indices = torch.topk(stat, int(stat.shape[1] * new_mlp.k_factor), dim=-1)
+            new_mlp.prepare_reduced_weights(indices)
+            new_mlp.mag_mask = torch.ones(stat.shape[-1], dtype=bool)
+            new_mlp.mag_mask[indices[0]] = False
+
+        l.mlp = new_mlp
+    
+    return model
+
 class GriffinLlamaMLP(nn.Module): # CATS-like 
-    def __init__(self, config, k_factor):
+    def __init__(self, config, k_factor, patternstrict): 
         super().__init__()
         self.config = config
         self.hidden_size = config.hidden_size
@@ -164,6 +192,7 @@ class GriffinLlamaMLP(nn.Module): # CATS-like
         self.mode = config.mode
         self.inference_mode = "full"
         self.neuron_stat: torch.Tensor = None
+        self.patternstrict = patternstrict 
         assert self.inference_mode in ["full", "partial"]
         assert self.mode in ['gen', 'class']
 
@@ -233,13 +262,44 @@ class GriffinLlamaMLP(nn.Module): # CATS-like
                     else:
                         #down_proj =self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
 
-                        int_states :torch.Tensor = self.act_fn(self.gate_proj(x))
+                        int_states :torch.Tensor = self.act_fn(self.gate_proj(x)) # B, seq_len, D 
 
-                        _, indices = torch.abs(int_states).topk(k=int(self.k_factor * int_states.shape[-1]), largest=False, dim=-1)
-                        int_states[:,:,indices] = 0
-
+                        if not self.patternstrict: 
+                            assert int_states.shape[1] == 1 
+                            _, indices = torch.abs(int_states).topk(k=int(self.k_factor * int_states.shape[-1]), largest=False, dim=-1) # B, seq_len, k 
+                            # int_states[:,:,indices] = 0 
+                            buffrzeros = torch.zeros_like(int_states) 
+                            int_states.scatter_(dim = -1, index = indices, src = buffrzeros) 
+                        else: 
+                            
+                            batch_size, seq_len, hidden_size = int_states.shape 
+                            intstatesbuffer = int_states.permute(1, 0, 2) # seq_len, batch_size, hidden_size 
+                            intstatesbuffer = intstatesbuffer.abs().sum(dim = 1) # seq_len, hidden_size 
+                            # intstatesbuffer = intstatesbuffer/intstatesbuffer.norm(dim = -1, keepdim = True) 
+                            # intstatesbuffer = intstatesbuffer.norm(dim = 1) # seq_len, hidden_size 
+                            _, indices = intstatesbuffer.topk(k = int(self.k_factor * hidden_size), largest = False, dim = -1) 
+                            indices = indices.unsqueeze(0).expand(batch_size, -1, -1) # B, seq_len, k 
+                            buffrzeros = torch.zeros_like(int_states) 
+                            int_states.scatter_(dim = -1, index = indices, src = buffrzeros) 
+                            
+                            '''
+                            batch_size, seq_len, hidden_size = int_states.shape 
+                            assert seq_len == 1 
+                            intstatesbuffer = int_states.permute(1, 0, 2) # seq_len, B, hidden_size 
+                            _, indices = torch.abs(intstatesbuffer).topk(k = int(self.k_factor * hidden_size), largest = False, dim = -1) # indices is of shape (seq_len, B, k) 
+                            indices = indices.reshape(seq_len, (batch_size * int(self.k_factor * hidden_size))) # seq_len, B * hidden_size 
+                            indices = indices.unique(dim = -1) # seq_len, m m larger than or equal to k 
+                            selectedintstates = intstatesbuffer.gather(dim = -1, index = indices.unsqueeze(1).expand(-1, batch_size, -1)) # seq_len, B, m 
+                            selectedintstates = selectedintstates.abs().sum(dim = 1) # seq_len, m 
+                            _, final_indices = selectedintstates.topk(k = int(self.k_factor * hidden_size), largest = False, dim = -1) 
+                            # _, final_indices = intstatesbuffer.abs().sum(dim = 1).topk(k = int(self.k_factor * hidden_size), largest = False, dim = -1) 
+                            final_indices = final_indices.unsqueeze(0).expand(batch_size, -1, -1) # seq_len, B, k 
+                            # final_indices = final_indices.permute(1, 0, 2) # B, seq_len, k 
+                            buffrzeros = torch.zeros_like(int_states) 
+                            int_states.scatter_(dim = -1, index = final_indices, src = buffrzeros) 
+                            ''' 
                         int_states *= self.up_proj(x)
-                        down_proj = self.down_proj(int_states)
+                        down_proj = self.down_proj(int_states) 
 
         return down_proj
     def reset_stats(self):
@@ -322,6 +382,89 @@ class GriffinLlamaMLP2(nn.Module): # Griffin-like
             return down_proj
     def reset_stats(self):
         self.neuron_stat = None 
+
+class GriffinLlamaMLP3(nn.Module): # CATSTHRESHOLD-like 
+    def __init__(self, config, k_factor, layer_idx): 
+        super().__init__()
+        self.config = config
+        self.hidden_size = config.hidden_size
+        self.intermediate_size = config.intermediate_size
+        self.gate_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
+        self.up_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
+        self.down_proj = nn.Linear(self.intermediate_size, self.hidden_size, bias=False)
+        self.act_fn = F.silu 
+        self.layer_idx = layer_idx 
+        
+        self.k_factor = k_factor
+        self.mode = config.mode
+        self.inference_mode = "full"
+        self.neuron_stat: torch.Tensor = None
+        assert self.inference_mode in ["full", "partial"]
+        assert self.mode in ['gen', 'class']
+        self.threshold_ = self.config.threshold 
+        
+        if self.threshold_: 
+            with open(self.config.threshold_file, "rb") as f: 
+                self.threshold = np.load(f)[self.layer_idx] 
+
+    def prepare_reduced_weights(self, topk_indices):
+        assert topk_indices.shape[0] == 1 # Batch size 1
+        
+        self.gate_proj_reduced = nn.Linear(self.gate_proj.weight.data.shape[1], len(topk_indices), bias=False)
+        self.up_proj_reduced = nn.Linear(self.up_proj.weight.data.shape[1], len(topk_indices), bias=False)
+        self.down_proj_reduced = nn.Linear(len(topk_indices), self.down_proj.weight.data.shape[0], bias=False)
+        topk_indices = topk_indices[0]
+
+        self.gate_proj_reduced.weight.data = self.gate_proj.weight.data[topk_indices]
+        self.up_proj_reduced.weight.data = self.up_proj.weight.data[topk_indices]
+        self.down_proj_reduced.weight.data = self.down_proj.weight.data[:, topk_indices]
+    
+
+    def forward(self, x):
+        if self.config.pretraining_tp > 1:
+            slice = self.intermediate_size // self.config.pretraining_tp
+            gate_proj_slices = self.gate_proj.weight.split(slice, dim=0)
+            up_proj_slices = self.up_proj.weight.split(slice, dim=0)
+            down_proj_slices = self.down_proj.weight.split(slice, dim=1)
+
+            gate_proj = torch.cat(
+                [F.linear(x, gate_proj_slices[i]) for i in range(self.config.pretraining_tp)], dim=-1
+            )
+            up_proj = torch.cat([F.linear(x, up_proj_slices[i]) for i in range(self.config.pretraining_tp)], dim=-1)
+
+            intermediate_states = (self.act_fn(gate_proj) * up_proj).split(slice, dim=2)
+            down_proj = [
+                F.linear(intermediate_states[i], down_proj_slices[i]) for i in range(self.config.pretraining_tp)
+            ]
+            down_proj = sum(down_proj)
+        else:
+            k_factor = self.k_factor
+            if self.mode == 'gen':
+                if self.inference_mode == 'full':
+                    
+                    int_states :torch.Tensor = self.act_fn(self.gate_proj(x)) * self.up_proj(x)
+                        
+                    down_proj = self.down_proj(int_states)
+
+                else:
+                    if k_factor == 0.0:
+                        down_proj = 0 * x 
+                    else:
+                        #down_proj =self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
+
+                        int_states :torch.Tensor = self.act_fn(self.gate_proj(x)) # B, seq_len, D 
+                        norm_ = int_states.norm(dim = -1, keepdim = True).sum(dim = 0) 
+                        k = int(norm_.shape[-1] * k_factor) 
+                        
+                        output = norm_ > self.threshold 
+                        mask = output.unsqueeze(0).expand_as(int_states) 
+                        int_states = int_states * mask 
+                        
+                        down_proj = self.down_proj(int_states * self.up_proj(x)) 
+
+        return down_proj
+    def reset_stats(self):
+        self.neuron_stat = None
 
 class LlamaAttention(nn.Module):
     """Multi-headed attention from 'Attention Is All You Need' paper"""
@@ -858,7 +1001,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.total_roll_back_length_error = 0 
         self.roll_back_length_in_error = [] 
         self.errorinstance = 0 
-        self.verbose = False # manually set to false during measurement 
+        self.verbose = True # manually set to false during measurement 
         
         # for bug debugging investigation only 
         from transformers import AutoTokenizer 
@@ -866,7 +1009,18 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         if self.verbose: 
             assert self.tokenizer is not None 
         # Initialize weights and apply final processing
-        self.post_init()
+        self.post_init() 
+        
+        # tree related 
+        self.k = 8 
+        self.beamwidth = self.k 
+        print("beam width is {}".format(self.beamwidth)) 
+        self.beam = [] 
+        self.completed_sequences = [] 
+    
+    def reset_tree(self): 
+        self.beam = [] 
+        self.completed_sequences = [] 
 
     def get_input_embeddings(self):
         return self.model.embed_tokens
@@ -892,8 +1046,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.total_steps = 0 
         self.totalgenerationlength = 0 
         self.total_roll_back_length_error = 0 
-        self.errorinstance = 0 
         self.roll_back_length_in_error = [] 
+        self.errorinstance = 0 
 
     def forward(
         self,
@@ -987,11 +1141,49 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         ) 
+        
+    def checkcompletedsequences(self, seq): 
+        for seq1, _, _ in self.completed_sequences: 
+            if torch.equal(seq, seq1): 
+                return True 
+        return False 
     
     def prepare_inputs_for_generation(
-        self, input_ids, past_key_values=None, attention_mask=None, inputs_embeds=None, **kwargs 
+        self, input_ids, past_key_values = None, attention_mask=None, inputs_embeds=None, **kwargs 
     ): 
+        active_seq = [] 
+        active_log_prob = [] 
+        active_cache = [] 
+        # print("length of completed_sequences {}".format(len(self.completed_sequences))) 
+        # process tree input_ids and kv cache 
+        for seq, cum_log_prob, kv_cache in self.beam: 
+            # print("seq[:, -1] {}".format(seq[0][-1].item())) 
+            # print("self.tokenizer.eos_token_id {}".format(self.tokenizer.eos_token_id)) 
+            # print("seq[:, -1].item() == self.tokenizer.eos_token_id {}".format(seq[0][-1].item() == self.tokenizer.eos_token_id)) 
+            if seq[0][-1].item() == self.tokenizer.eos_token_id: 
+                print(colored("adding to completed sequences", "green")) 
+                if not self.checkcompletedsequences(seq): 
+                    self.completed_sequences.append((seq, cum_log_prob, kv_cache)) 
+            else: 
+                active_seq.append(seq) 
+                active_log_prob.append(cum_log_prob) 
+                active_cache.append(kv_cache) 
+        
+        if len(active_seq) == 0: 
+            return {"input_ids": None} 
+        
+        # stack 
+        if len(active_seq) > 1: 
+            # input_ids = torch.stack(active_seq, dim = 0) 
+            input_ids = torch.cat(active_seq, dim = 0) 
+            past_key_values = GriffinCache.stackcache(active_cache) 
+        else: 
+            input_ids = active_seq[0] 
+            past_key_values = active_cache[0] 
+        extendedinput_ids = input_ids.clone() 
+        
         past_length = 0 
+        assert past_key_values is not None 
         if past_key_values is not None: 
             if isinstance(past_key_values, GriffinCache): 
                 cache_length = past_key_values.get_seq_length() # cache_length is not useful 
@@ -1039,8 +1231,53 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         # preparing cache_position 
         cache_position = kwargs.get("cache_position", None) 
         if cache_position is None: 
+            # print(colored("cache_position is None", "red")) 
             cache_position = torch.arange(past_length, past_length + position_ids.shape[1], device = input_ids.device, dtype = position_ids.dtype) 
             # cache_position = position_ids.clone() 
+        
+        # if `inputs_embeds` are passed, we only want to use them in the 1st generation step
+        if inputs_embeds is not None and past_key_values is None:
+            model_inputs = {"inputs_embeds": inputs_embeds}
+        else:
+            model_inputs = {"input_ids": input_ids} 
+        
+        model_inputs.update(
+            {
+                "position_ids": position_ids, 
+                "attention_mask": attention_mask, 
+                "cache_position": cache_position, 
+                "past_key_values": past_key_values, 
+                "use_cache": kwargs.get("use_cache"), 
+                "extended_input_ids": extendedinput_ids, 
+                "active_probs": active_log_prob, 
+            } 
+        ) 
+        return model_inputs 
+    
+    def prepare_initial_run(self, input_ids, attention_mask, inputs_embeds = None, **kwargs): 
+        past_length = 0 
+        
+        past_key_values = None 
+        # position_ids 
+        position_ids = kwargs.get("position_ids", None) 
+        if attention_mask is not None and position_ids is None: # this part is included in the original prepare_inputs_for_generation 
+            # create position_ids on the fly for batch generation
+            position_ids = attention_mask.long().cumsum(-1) - 1
+            position_ids.masked_fill_(attention_mask == 0, 1)
+            if past_key_values:
+                position_ids = position_ids[:, -input_ids.shape[1] :] 
+        
+        # preparing cache_position 
+        if getattr(self.model.layers[0].self_attn, "past_key_value", None) is not None: # I don't think this block of code is necessary 
+            past_key_value_first_layer = self.model.layers[0].self_attn.past_key_value 
+            past_length = past_key_value_first_layer.get_seq_length() 
+            input_ids = input_ids[:, past_length :] 
+            position_ids = position_ids[:, past_length :] 
+        
+        # preparing cache_position 
+        cache_position = kwargs.get("cache_position", None) 
+        if cache_position is None: 
+            cache_position = torch.arange(past_length, past_length + position_ids.shape[1], device = input_ids.device, dtype = position_ids.dtype) 
         
         # if `inputs_embeds` are passed, we only want to use them in the 1st generation step
         if inputs_embeds is not None and past_key_values is None:
@@ -1075,7 +1312,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
     def set_inference_mode(self, mode): 
         for layer in self.model.layers: 
             layer.mlp.inference_mode = mode 
-            
+    
     def greedy_search(
         self,
         input_ids: torch.LongTensor,
@@ -1190,7 +1427,12 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         ```"""
         initial_len = input_ids.shape[1]
         
-        kernel_size = self.config.kernel_size
+        kernel_size = self.config.kernel_size 
+        self.k = self.config.treewidth 
+        if self.beamwidth != self.k: 
+            self.beamwidth = self.k 
+            print("beamwidth is {}".format(self.beamwidth)) 
+        self.reset_tree() 
         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
         stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
         if max_length is not None:
@@ -1248,60 +1490,138 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         outputs = None 
         
         self.num_sentence += 1 
-        assert input_ids.shape[0] == 1 
+        assert input_ids.shape[0] == 1 # the purpose of the input_ids now is to hold the collapsed tree results 
+        
+        # full model initial run 
+        model_inputs = self.prepare_initial_run(input_ids, **model_kwargs) 
+        track_position_ids = model_inputs["position_ids"] if track_position_ids is None else torch.cat([track_position_ids, model_inputs["position_ids"]], dim = -1) 
+        track_cache_position = model_inputs["cache_position"] if track_cache_position is None else torch.cat([track_cache_position, model_inputs["cache_position"]], dim = -1) 
+        
+        currentlength = input_ids.shape[1] # accumulating new_tokens 
+        
+        self.set_inference_mode("full") 
+        outputs = self( # full model run 
+            **model_inputs, 
+            return_dict = True, 
+            output_attentions = output_attentions, 
+            output_hidden_states = output_hidden_states, 
+        ) 
+        
+        # if synced_gpus and this_peer_finished:
+        #     continue  # don't waste resources running the code we don't need 
+        
+        next_token_logits = outputs.logits[:, -1, :]
+        # pre-process distribution
+        next_tokens_scores = logits_processor(input_ids, next_token_logits) 
+        initial_log_probability = torch.log_softmax(next_tokens_scores, dim = -1) 
+        # Store scores, attentions and hidden_states when required 
+        
+        # argmax
+        next_tokens = torch.argmax(next_tokens_scores, dim=-1)
+        # update generated ids, model inputs, and length for next step
+        input_ids = torch.cat([input_ids, next_tokens[:, None]], dim=-1)
+        model_kwargs = self._update_model_kwargs_for_generation(
+            outputs, model_kwargs, is_encoder_decoder=self.config.is_encoder_decoder
+        ) 
+        
+        if self.verbose: 
+            print(colored(self.tokenizer.decode(next_tokens), color = "cyan"), flush = True) 
+        self.beam = [(input_ids, initial_log_probability[0][next_tokens.item()], outputs.past_key_values)] 
+        iteration_count = -1 
         
         # TODO the main while loop 
         while True: 
+            iteration_count += 1 
             model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs) 
-            # print("{} ".format(input_ids.shape[1]), flush = True, end = " ") 
+            all_sequences = [x for x in self.completed_sequences] # appending to all_sequences shouldn't affect the completed_sequences 
+            if model_inputs["input_ids"] is None: 
+                break 
             
             track_position_ids = model_inputs["position_ids"] if track_position_ids is None else torch.cat([track_position_ids, model_inputs["position_ids"]], dim = -1) 
             track_cache_position = model_inputs["cache_position"] if track_cache_position is None else torch.cat([track_cache_position, model_inputs["cache_position"]], dim = -1) 
             
             currentlength = input_ids.shape[1] # accumulating new_tokens 
             generatedlength = currentlength - initial_len 
-            
-            # past_key_values.mode = "decoding" 
-            if generatedlength > 0: # using partial sparse model 
-                self.set_inference_mode("partial") 
-                if self.config.check and (currentlength - last_check) == kernel_size: 
-                # if False: 
-                    outputs.past_key_values.adding_one_entry() 
-                else: 
-                    # print("before length {}".format(outputs.past_key_values.get_seq_len())) 
-                    outputs = self(
-                        **model_inputs, 
-                        return_dict = True, 
-                        output_attentions = output_attentions, 
-                        output_hidden_states = output_hidden_states, 
-                    ) 
-                    # print("after length {}".format(outputs.past_key_values.get_seq_len())) 
-                    next_token_logits = outputs.logits[:, -1, :] 
-                    next_tokens_scores = logits_processor(input_ids, next_token_logits)
-                    next_tokens = torch.argmax(next_tokens_scores, dim=-1)
-                
-            else: # using the full model 
-                self.set_inference_mode("full") 
-                outputs = self(
-                    **model_inputs, 
+
+            self.set_inference_mode("partial") 
+            model_inputs["past_key_values"].mode = "decoding" 
+            if self.config.check and (currentlength - last_check) == kernel_size or (self.config.check and want_to_quit): # to avoid one more pass of the sparse model, here we use a dummy operation to fill in one step into the kv cache 
+                # outputs.past_key_values.adding_one_entry() 
+                # print("model_inputs[past_key_values].shape {}".format(model_inputs["past_key_values"].key_cache[0].shape)) 
+                model_inputs["past_key_values"].adding_one_entry() 
+                # print("adding one input_ids shape {}".format(model_inputs["extended_input_ids"].shape)) 
+                # print("se")
+                # print("after addingone model_inputs[past_key_values].shape {}".format(model_inputs["past_key_values"].key_cache[0].shape)) 
+            else: 
+                # print("input_ids shape {}".format(model_inputs["input_ids"].shape)) 
+                # print("extended input_ids shape {}".format(model_inputs["extended_input_ids"].shape)) 
+                # print("cache length {}".format(model_inputs["past_key_values"].get_seq_length())) 
+                outputs = self( # I expand the arguments of model_inputs 
+                    input_ids = model_inputs["input_ids"], 
+                    position_ids = model_inputs["position_ids"], 
+                    attention_mask = model_inputs["attention_mask"], 
+                    past_key_values = model_inputs["past_key_values"], 
+                    use_cache = model_inputs["use_cache"], 
+                    cache_position = model_inputs["cache_position"], 
                     return_dict = True, 
                     output_attentions = output_attentions, 
                     output_hidden_states = output_hidden_states, 
                 ) 
+                
+                next_token_logits = outputs.logits[:, -1, :] 
+                next_tokens_scores = logits_processor(input_ids, next_token_logits)
+                next_token_probs = torch.log_softmax(next_token_logits/0.6, dim = -1) # batch_size, seq_len, vocab_size 
+                now_cache = outputs.past_key_values 
+                active_now_cache = GriffinCache.splitcache(now_cache) 
+
+                for i in range(next_token_logits.shape[0]): 
+                    topk, topkidx = torch.topk(next_token_probs[i], self.k, dim = -1) # Decoding line here, trying to instead of finding the top1, we find topk 
+                    for logprob, ids in zip(topk, topkidx): 
+                        extended_input_ids = model_inputs["extended_input_ids"][i] 
+                        outputlogprob = logprob 
+                        logprob = model_inputs["active_probs"][i] + logprob.item() # TODO print out logprob shape 
+                        extended_input_ids = torch.cat([extended_input_ids, ids.unsqueeze(0)], dim = 0) # ids is of shape (batch_size, 1) 
+                        extended_input_ids = extended_input_ids.unsqueeze(0) 
+                        all_sequences.append((extended_input_ids, logprob, i)) 
+                        if self.verbose: 
+                            print(colored("{:.5f} * {:.5f} = {:.5f}".format(torch.exp(model_inputs["active_probs"][i]), torch.exp(outputlogprob), torch.exp(model_inputs["active_probs"][i] + logprob)), color = "light_green"), flush = True) 
+                            print(colored("({}, {}, {})".format(self.tokenizer.decode(extended_input_ids[0, initial_len :]), logprob, i), color = "yellow"), flush = True) 
+                        if torch.exp(outputlogprob) > 0.95: 
+                            break 
+                # prune 
+                all_sequences = sorted(all_sequences, key = lambda x: x[1], reverse = True) 
+                self.beam = [] 
+                for i in range(min(self.beamwidth, len(all_sequences))): 
+                    if isinstance(all_sequences[i][2], GriffinCache): 
+                        new_cache_copy = all_sequences[i][2].copy() 
+                    else: 
+                        new_cache_copy = active_now_cache[all_sequences[i][2]].copy() 
+                    self.beam.append((all_sequences[i][0], all_sequences[i][1], new_cache_copy)) 
+                    if self.verbose: 
+                        print(colored("({}, {}, {})".format(self.tokenizer.decode(self.beam[-1][0][0, initial_len :]), self.beam[-1][1], self.beam[-1][2].seen_tokens), color = "light_magenta"), flush = True) 
+                if self.verbose: 
+                    print() 
             
-            # depending on checking, whether we need to correct or roll back outputs 
             check_flag = False 
             if self.config.check: 
-                if ((currentlength - last_check) == kernel_size and generatedlength > 0) or want_to_quit: 
-                    # getting all the input to the full model 
+                if (currentlength - last_check) == kernel_size or want_to_quit: 
                     check_flag = True 
-                    past_key_values = outputs.past_key_values 
+                    past_key_values = model_inputs["past_key_values"] 
+                    # past_key_values = outputs.past_key_values 
+                    # print("cache length {}".format(past_key_values.get_seq_length())) 
+                    # print("beforechecking past_key_values shape {}".format(past_key_values.key_cache[0].shape)) 
+                    # print("beforechecking extended input_ids shape {}".format(model_inputs["extended_input_ids"].shape)) 
+                    # print("length of sequence length {}".format(self.beam[0][0].shape[1])) 
                     past_key_values.mode = "checking" # cache is being roll back 
                     checklength = currentlength - last_check 
-                    check_input_ids = input_ids[:, -checklength:] 
+                    check_input_ids = model_inputs["extended_input_ids"][:, -checklength:] 
+                    # print("input_ids shape {}".format(check_input_ids.shape)) 
                     check_attention_mask = model_inputs["attention_mask"] 
+                    # print("check_attention_mask shape {}".format(check_attention_mask.shape)) 
                     check_position_ids = track_position_ids[:, -checklength:] 
+                    # print("check_position_ids shape {}".format(check_position_ids.shape)) 
                     check_cache_position = track_cache_position[-checklength :] 
+                    # print("check_cache_position shape {}".format(check_cache_position.shape)) 
                     
                     self.set_inference_mode("full") 
                     # calling the evaluation 
@@ -1318,79 +1638,93 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     ) 
                     sparse_predicted_tokens = check_input_ids[:, 1:] 
                     full_predicted_logits = outputs.logits[:, :-1, :] 
-                    full_predicted_likelihood = torch.softmax(full_predicted_logits / 0.6, dim = -1) 
-                    selected_likelihood = torch.gather(full_predicted_likelihood, dim = -1, index = sparse_predicted_tokens.unsqueeze(-1)).squeeze(-1).squeeze(0) 
-
+                    full_predicted_likelihood = torch.softmax(full_predicted_logits/0.6, dim = -1) 
+                    selected_likelihood = torch.gather(full_predicted_likelihood, dim = -1, index = sparse_predicted_tokens.unsqueeze(-1)).squeeze(-1) 
+                    
                     # getting the length of the accepted token 
-                    lengthaccepts = 0 
+                    requireallpasses = False 
+                    batchdimselection = None 
+                    lengthacceptsbig = -1 
                     for i in range(selected_likelihood.shape[0]): 
-                        if selected_likelihood[i] >= self.config.thr: 
-                            lengthaccepts += 1 
-                        else: 
-                            break 
+                        acceptsall = True 
+                        lengthaccepts = 0 
+                        for k in range(selected_likelihood.shape[1]): 
+                            if selected_likelihood[i][k] >= self.config.thr: 
+                                lengthaccepts += 1 
+                            else: 
+                                acceptsall = False 
+                                break 
+                        if self.verbose: 
+                            print(colored("lengthaccepts {}".format(lengthaccepts), "grey"), flush = True) 
+                        if lengthaccepts > lengthacceptsbig: 
+                            lengthacceptsbig = lengthaccepts 
+                            batchdimselection = i 
+                        requireallpasses = requireallpasses or acceptsall 
                     
-                    outputs.logits = outputs.logits[:, : (lengthaccepts + 1), :] 
-                    # step = kernel_size - (lengthaccepts + 1) 
-                    step = checklength - (lengthaccepts + 1) 
+                    outputs_logits_used = outputs.logits[batchdimselection, : (lengthacceptsbig + 1), :].unsqueeze(0) 
+                    outputs.logits = outputs_logits_used 
+                    step = checklength - (lengthacceptsbig + 1) 
                     
+                    input_ids = self.beam[batchdimselection][0] 
                     if self.verbose: 
-                        print(colored(self.tokenizer.decode(input_ids[0, last_input_ids_print_pos : last_check + lengthaccepts + 1]), "green"), flush = True, end = " ") 
+                        print(colored(self.tokenizer.decode(input_ids[0, last_input_ids_print_pos : last_check + lengthacceptsbig + 1]), "green"), flush = True, end = " ") 
                         if step > 0: 
                             for i in range(step): 
                                 print(colored(self.tokenizer.decode(input_ids[0, -step + i]), "red"), flush = True, end = "") 
-                                print(colored("({:.2f})".format(selected_likelihood[lengthaccepts + i]), "red"), flush = True, end = " ") 
-                        # print(colored(self.tokenizer.decode(input_ids[0, last_input_ids_print_pos + last_satisfy :]), "red"), flush = True, end = " ") 
+                                print(colored("({:.2f})".format(selected_likelihood[batchdimselection][lengthacceptsbig + i].item()), "red"), flush = True, end = " ") 
                     
                     # roll back 
+                    # past_key_values = self.beam[batchdimselection][2] 
+                    past_key_valueslist = GriffinCache.splitcache(model_inputs["past_key_values"]) 
+                    past_key_values = past_key_valueslist[batchdimselection] 
+                    # print("before rollback past_key_values shape {}".format(past_key_values.key_cache[0].shape)) 
+                    # print("before rollback input_ids shape {}".format(input_ids.shape)) 
                     past_key_values.rollback(step) 
+                    # print("after rollback past_key_values shape {}".format(past_key_values.key_cache[0].shape)) 
                     past_key_values.mode = "decoding" 
-                    last_input_ids_print_pos = last_check + lengthaccepts + 1 
+                    last_input_ids_print_pos = last_check + lengthacceptsbig + 1 
                     if step > 0: 
-                        input_ids = input_ids[:, :-step] 
+                        input_ids = input_ids[:, : -step] 
                         track_position_ids = track_position_ids[:, :-step] 
                         track_cache_position = track_cache_position[:-step] 
+                        # print("after rollback input_ids shape {}".format(input_ids.shape)) 
                     
                     # setup for next iteration 
                     last_check = input_ids.shape[1] 
                     self.num_steps += 1 
-                    self.total_steps += lengthaccepts + 1 
-                    if lengthaccepts != checklength - 1: 
+                    self.total_steps += lengthacceptsbig + 1 
+                    if lengthacceptsbig != checklength - 1: 
                         self.errorinstance += 1 
-                        self.total_roll_back_length_error += (checklength - 1 - lengthaccepts) 
-                        self.roll_back_length_in_error.append(checklength - 1 - lengthaccepts) 
-                    if step == 0: # although not needed every time, good to have here 
+                        self.total_roll_back_length_error += (checklength - 1 - lengthacceptsbig) 
+                        self.roll_back_length_in_error.append(checklength - 1 - lengthacceptsbig) 
+                    if step == 0: 
                         approve_quit = True 
+                    
+                    # next_token_logits = outputs.logits[:, -1, :] 
+                    next_token_logits = outputs_logits_used[:, -1, :] 
+                    next_tokens_scores = logits_processor(input_ids, next_token_logits) 
+                    next_tokens = torch.argmax(next_tokens_scores, dim = -1) 
+                    input_ids = torch.cat([input_ids, next_tokens[:, None]], dim = -1) 
+                    next_token_probs = torch.log_softmax(next_token_logits/0.6, dim = -1) 
+                    accumulated_logprob = self.beam[batchdimselection][1] 
+                    if self.verbose and self.config.check: 
+                        print(colored(self.tokenizer.decode(next_tokens), color = "cyan"), flush = True, end = " ") 
+                        print(colored("Choosing {}".format(batchdimselection), "yellow"), flush = True) 
+                    # tree update and beam update 
+                    self.completed_sequences = [] 
+                    # self.beam = [(input_ids, next_token_probs[0][next_tokens.item()] + accumulated_logprob, past_key_values)] 
+                    self.beam = [(input_ids, next_token_probs[0][next_tokens.item()], past_key_values)] 
                 
             if synced_gpus and this_peer_finished:
-                continue  # don't waste resources running the code we don't need
-
-            next_token_logits = outputs.logits[:, -1, :]
+                continue  # don't waste resources running the code we don't need 
 
             # pre-process distribution
-            next_tokens_scores = logits_processor(input_ids, next_token_logits)
+            # next_tokens_scores = logits_processor(input_ids, next_token_logits) 
 
-            # Store scores, attentions and hidden_states when required
-            if return_dict_in_generate:
-                if output_scores:
-                    scores += (next_tokens_scores,)
-                if output_logits:
-                    raw_logits += (next_token_logits,)
-                if output_attentions:
-                    decoder_attentions += (
-                        (outputs.decoder_attentions,) if self.config.is_encoder_decoder else (outputs.attentions,)
-                    )
-                    if self.config.is_encoder_decoder:
-                        cross_attentions += (outputs.cross_attentions,)
-
-                if output_hidden_states:
-                    decoder_hidden_states += (
-                        (outputs.decoder_hidden_states,)
-                        if self.config.is_encoder_decoder
-                        else (outputs.hidden_states,)
-                    )
+            # Store scores, attentions and hidden_states when required 
 
             # argmax
-            next_tokens = torch.argmax(next_tokens_scores, dim=-1)
+            # next_tokens = torch.argmax(next_tokens_scores, dim=-1) 
             
             if eos_token_id is not None:
                 if pad_token_id is None:
@@ -1398,16 +1732,70 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                 next_tokens = next_tokens * unfinished_sequences + pad_token_id * (1 - unfinished_sequences)
             
             # update generated ids, model inputs, and length for next step
-            input_ids = torch.cat([input_ids, next_tokens[:, None]], dim=-1)
-            
-            if self.verbose and not self.config.check: 
-                print(self.tokenizer.decode(input_ids[0, -1]), flush = True, end = " ") 
+            # input_ids = torch.cat([input_ids, next_tokens[:, None]], dim=-1) 
+            input_ids = self.beam[0][0] 
+            next_tokens = input_ids[:, -1] 
             
             if streamer is not None:
                 streamer.put(next_tokens.cpu())
             model_kwargs = self._update_model_kwargs_for_generation(
                 outputs, model_kwargs, is_encoder_decoder=self.config.is_encoder_decoder
             ) 
+            '''
+            if iteration_count >= 0: 
+                print("running in isolation on beam first sequence: {}".format(self.tokenizer.decode(self.beam[0][0][0, initial_len : ]))) 
+                cacheintermediate = self.beam[0][2].copy() 
+                batch_inputs = [] 
+                batch_kvcache = [] 
+                batch_attentionmask = [] 
+                batch_positionids = [] 
+                batch_cacheposition = [] 
+                for seq, _, cache in self.beam: 
+                    batch_inputs.append(seq[:, -1].unsqueeze(0)) 
+                    batch_kvcache.append(cache) 
+                    batch_attentionmask.append(torch.ones((1, 1), dtype = input_ids.dtype).to(input_ids.device)) 
+                    batch_positionids.append(torch.tensor([[self.beam[0][0].shape[1] - 1]], dtype = input_ids.dtype).to(input_ids.device)) 
+                    batch_cacheposition.append(torch.arange(cacheintermediate.seen_tokens, cacheintermediate.seen_tokens + 1, device = input_ids.device, dtype = input_ids.dtype).unsqueeze(0)) 
+                # print("cacheintermediate seen tokens {}".format(cacheintermediate.seen_tokens)) 
+                # cache_position = torch.arange(cacheintermediate.seen_tokens, cacheintermediate.seen_tokens + 1, device = input_ids.device, dtype = input_ids.dtype) 
+                # attention_mask = torch.ones((1, 1), dtype = input_ids.dtype).to(input_ids.device) 
+                # position_ids = torch.tensor([[self.beam[0][0].shape[1]]], dtype = input_ids.dtype).to(input_ids.device) 
+                # print("input_ids shape {}".format(self.beam[0][0].shape)) 
+                # print(self.tokenizer.decode(self.beam[0][0][0]), flush = True) 
+                print("type of kv cache {}".format(type(self.beam[0][2]))) 
+                # print("input shape {} attention mask {} cache position shape {}".format(torch.cat(batch_inputs, dim = 0).shape, torch.cat(batch_attentionmask, dim = 0).shape, torch.cat(batch_cacheposition, dim = 0).shape)) 
+                self.set_inference_mode("partial") 
+                outputstwo = self(
+                    # input_ids = self.beam[0][0][:, -1].unsqueeze(0).repeat(len(self.beam), 1), 
+                    input_ids = torch.cat(batch_inputs, dim = 0), 
+                    # input_ids = input_ids[:, : -2], 
+                    # attention_mask = torch.ones_like(self.beam[0][0]), 
+                    attention_mask = torch.cat(batch_attentionmask, dim = 0), 
+                    # position_ids = torch.arange(1, self.beam[0][0].shape[1] + 1, device = input_ids.device, dtype = input_ids.dtype).unsqueeze(0), 
+                    position_ids = torch.cat(batch_positionids, dim = 0), 
+                    use_cache = True, 
+                    past_key_values = GriffinCache.stackcache(batch_kvcache), 
+                    return_dict = True, 
+                    # cache_position = model_kwargs["cache_position"], 
+                    # cache_position = torch.cat(batch_cacheposition, dim = 0), 
+                    cache_position = batch_cacheposition[0], 
+                    # cache_position = torch.arange(0, self.beam[0][0].shape[1], device = input_ids.device, dtype = input_ids.dtype), 
+                ) 
+                next_token_logits2 = outputstwo.logits[:, -1, :] 
+                for i in range(next_token_logits2.shape[0]): 
+                    print("checking whether the input is the same {}".format(self.tokenizer.decode(batch_inputs[i][0])), flush = True) 
+                    next_token_logits = next_token_logits2[i].unsqueeze(0) 
+                    # next_tokens_scores = logits_processor(input_ids, next_token_logits) 
+                    next_tokens_scores = torch.softmax(next_token_logits/0.6, dim = -1) 
+                    topk, topkidx = torch.topk(next_tokens_scores, self.k, dim = -1) 
+                    topk = topk.squeeze(0) 
+                    topkidx = topkidx.squeeze(0) 
+                    print("topkidx shape {}, topk shape {}".format(topkidx.shape, topk.shape), flush = True) 
+                    for logprob, ids in zip(topk, topkidx): 
+                        print(colored("({}, {})".format(self.tokenizer.decode(ids.item()), logprob.item()), color = "yellow"), flush = True) 
+                    print() 
+                exit(0) 
+            ''' 
             if check_flag: 
                 model_kwargs["attention_mask"] = model_kwargs["attention_mask"][...,:input_ids.shape[1]] 
             
@@ -1419,7 +1807,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                 
                 # stop when each sentence is finished
                 if unfinished_sequences.max() == 0:
-                    this_peer_finished = True
+                    this_peer_finished = True 
 
             # stop if we exceed the maximum length
             if stopping_criteria(input_ids, scores):
@@ -1459,8 +1847,10 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
             streamer.end()
         
         self.totalgenerationlength += input_ids.shape[1] - initial_len 
+        # print("total generation length {}".format(self.totalgenerationlength)) 
+        # print(self.tokenizer.decode(input_ids[0][initial_len : ])) 
 
-        if return_dict_in_generate:
+        if return_dict_in_generate: 
             if self.config.is_encoder_decoder:
                 return GenerateEncoderDecoderOutput(
                     sequences=input_ids,
@@ -1476,11 +1866,11 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
             else:
                 return GenerateDecoderOnlyOutput(
                     sequences=input_ids,
-                    scores=scores,
-                    logits=raw_logits,
-                    attentions=decoder_attentions,
-                    hidden_states=decoder_hidden_states,
+                    scores=None, 
+                    logits=None, 
+                    attentions=None, 
+                    hidden_states=None, 
                     past_key_values=model_kwargs.get("past_key_values"),
-                )
+                ) 
         else: 
             return input_ids
