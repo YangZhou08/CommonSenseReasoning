@@ -384,7 +384,7 @@ for task in tasks:
     if is_distributed: 
         model.module.updatestatistic() 
     else: 
-        model.updatestatistics() 
+        model.updatestatistic() 
     # dataloader, cotprompt = get_dataset(task, requirements = "_5shot") 
     if args.shotfive: 
         dataloader, cotprompt = get_dataset(task, is_distributed = is_distributed, requirements = "_5shot") 
