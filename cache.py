@@ -142,6 +142,60 @@ class GriffinCache(Cache):
                 key_states, value_states = past_key_values[layer_idx]
                 cache.update(key_states, value_states, layer_idx)
         return cache
+    
+    @staticmethod 
+    def stackcache(previouscache: List["GriffinCache"]) -> "GriffinCache": 
+        # check seen_tokens 
+        previous_seen_token = None 
+        previous_mode = None 
+        for cache in previouscache: 
+            assert isinstance(cache, GriffinCache) 
+            if previous_seen_token is None: 
+                previous_seen_token = cache.seen_tokens 
+                previous_mode = cache.mode 
+            else: 
+                assert cache.seen_tokens == previous_seen_token 
+                assert cache.mode == previous_mode 
+        
+        new_key_cache = [] 
+        new_value_cache = [] 
+        for layer_idx in range(len(previouscache[0].key_cache)): 
+            k_layer = [] 
+            v_layer = [] 
+            for cache in previouscache: 
+                k_layer.append(cache.key_cache[layer_idx]) 
+                v_layer.append(cache.value_cache[layer_idx]) 
+            new_key_cache.append(torch.cat(k_layer, dim = 0)) 
+            new_value_cache.append(torch.cat(v_layer, dim = 0)) 
+        
+        new_cache = GriffinCache() # new cache 
+        new_cache.key_cache = new_key_cache 
+        new_cache.value_cache = new_value_cache 
+        new_cache.seen_tokens = previous_seen_token 
+        new_cache.mode = previous_mode 
+        
+        return new_cache 
+    
+    @staticmethod 
+    def splitcache(cache: "GriffinCache") -> List["GriffinCache"]: 
+        new_cache = [] 
+        for i in range(len(cache.key_cache[0])): 
+            cacheitemp = GriffinCache() 
+            cacheitemp.key_cache = [k[i].unsqueeze(dim = 0) for k in cache.key_cache] 
+            cacheitemp.value_cache = [v[i].unsqueeze(dim = 0) for v in cache.value_cache] 
+            cacheitemp.seen_tokens = cache.seen_tokens 
+            cacheitemp.mode = cache.mode 
+            new_cache.append(cacheitemp) 
+        return new_cache 
+    
+    def copy(self): 
+        new_cache = GriffinCache() 
+        new_cache.key_cache = [k.clone() for k in self.key_cache] 
+        new_cache.value_cache = [v.clone() for v in self.value_cache] 
+        new_cache.seen_tokens = self.seen_tokens 
+        new_cache.mode = self.mode 
+        return new_cache 
+                    
     def rollback(self, steps:int):
         
         if steps > 0:
