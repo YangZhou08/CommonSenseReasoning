@@ -37,6 +37,8 @@ parser.add_argument("--check", action = "store_true")
 parser.add_argument("--kernel_size", type = int, default = None) 
 parser.add_argument("--spr", type = float, default = 0.5) 
 parser.add_argument("--thr", type = float, default = 0.1) 
+parser.add_argument("--widthtree", type = int, default = 8) 
+parser.add_argument("--patternstrict", action = "store_true") 
 parser.add_argument("--shotfive", action = "store_true") 
 parser.add_argument("--shottwo", action = "store_true") 
 
