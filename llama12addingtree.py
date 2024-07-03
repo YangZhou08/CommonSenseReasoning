@@ -1313,6 +1313,42 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         for layer in self.model.layers: 
             layer.mlp.inference_mode = mode 
     
+    def merging_tree_into_one_sequence(treetensor):
+        num_sequences, sequence_length = treetensor.shape
+        # treetensor = treetensor.clone().cpu() 
+        merge_sequence = []
+        visited = set()
+
+        def dfs(sequence, depth=0):
+            for i in range(depth, sequence_length):
+                current_element = sequence[i].item()
+                current_path = tuple(sequence[:i+1].cpu().tolist()) 
+                
+                if current_path not in visited:
+                    visited.add(current_path)
+                    merge_sequence.append(current_element)
+                    
+                    for other_sequence in treetensor:
+                        if torch.equal(other_sequence[:i+1], sequence[:i+1]):
+                            if i+1 < sequence_length:
+                                dfs(other_sequence, i+1)
+        
+        # Start DFS from each sequence
+        for seq in treetensor:
+            dfs(seq)
+
+        return torch.tensor(merge_sequence), len(merge_sequence)
+    
+    def merging_tree_into_one_sequence(self, treetensor): 
+        num_sequences, sequence_length = treetensor.shape 
+        merge_sequence = treetensor[0].tolist() 
+        for sequence in treetensor[1:]: 
+            i = 0 
+            while i < len(sequence_length) and i < len(merge_sequence) and sequence[i] == merge_sequence[i]: 
+                i += 1 
+            merge_sequence.extend(sequence[i:]) 
+        return len(merge_sequence) 
+    
     def greedy_search(
         self,
         input_ids: torch.LongTensor,
@@ -1586,7 +1622,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                         if self.verbose: 
                             print(colored("{:.5f} * {:.5f} = {:.5f}".format(torch.exp(model_inputs["active_probs"][i]), torch.exp(outputlogprob), torch.exp(model_inputs["active_probs"][i] + logprob)), color = "light_green"), flush = True) 
                             print(colored("({}, {}, {})".format(self.tokenizer.decode(extended_input_ids[0, initial_len :]), logprob, i), color = "yellow"), flush = True) 
-                        if torch.exp(outputlogprob) > 0.95: 
+                        if torch.exp(outputlogprob) > 0.95 and self.config.filteractiveenabled: 
                             break 
                 # prune 
                 all_sequences = sorted(all_sequences, key = lambda x: x[1], reverse = True) 

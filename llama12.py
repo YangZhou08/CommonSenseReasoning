@@ -80,6 +80,8 @@ from termcolor import colored
 
 import numpy as np 
 
+from lm_eval.models.utils import MultiTokenEOSCriteria 
+
 
 NEED_SETUP_CACHE_CLASSES_MAPPING = {
     "static": StaticCache,
@@ -970,7 +972,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.total_roll_back_length_error = 0 
         self.roll_back_length_in_error = [] 
         self.errorinstance = 0 
-        self.verbose = True # manually set to false during measurement 
+        self.verbose = False # manually set to false during measurement 
         
         # for bug debugging investigation only 
         from transformers import AutoTokenizer 
@@ -1304,7 +1306,11 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         
         kernel_size = self.config.kernel_size
         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
-        stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
+        stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList() 
+        for stoppingcrition in stopping_criteria: 
+            if isinstance(stoppingcrition, MultiTokenEOSCriteria): 
+                stoppingcrition.sequence_id_len = len(stoppingcrition.sequence_ids) + self.config.kernel_size 
+        
         if max_length is not None:
             warnings.warn(
                 "`max_length` is deprecated in this function, use"
@@ -1571,28 +1577,39 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
 
             # stop if we exceed the maximum length
             if stopping_criteria(input_ids, scores):
-                
                 this_peer_finished = True 
-                '''
+                this_peer_finished = this_peer_finished and check_flag 
+                
                 if this_peer_finished: 
+                    recheckoutcome = False 
                     
-                    from lm_eval.models.utils import MultiTokenEOSCriteria 
+                    from transformers.generation.stopping_criteria import MaxLengthCriteria 
                     for stoppingc in stopping_criteria: 
+                        if isinstance(stoppingc, MaxLengthCriteria): 
+                            recheckoutcome = recheckoutcome or stoppingc(input_ids, scores) 
+                            
                         if isinstance(stoppingc, MultiTokenEOSCriteria): 
-                            break 
-
-                    print("stop sequence {}".format(stoppingc.sequence)) 
+                            stoppingc.done_tracker = [False] * input_ids.shape[0] 
+                            # print("stop sequence {}".format(stoppingc.sequence)) 
+                            # stoppingtest = MultiTokenEOSCriteria2(stoppingc.sequence, self.tokenizer, stoppingc.initial_decoder_input_length, 1) 
+                            # print("meet the multi token eos criteria {}".format(stoppingtest(input_ids, scores))) 
+                            recheckoutcome = recheckoutcome or stoppingc(input_ids, scores) 
+                            # print("meet the multi token eos criteria {}".format(stoppingc(input_ids, None))) 
+                            # print("meet the multi token eos criteria {}".format(stoppingc(input_ids, scores))) 
+                    this_peer_finished = recheckoutcome 
+                    '''
+                    # print("stop sequence {}".format(stoppingc.sequence)) 
                     lookbacklength = len(self.tokenizer.encode(stoppingc.sequence, add_special_tokens = False)) + 2 
                     print("sequence in tokenids {}".format(self.tokenizer.encode(stoppingc.sequence, add_special_tokens = False))) 
                     print("input_ids lookingback {}".format(input_ids[:, -lookbacklength : ])) 
                     lookingbackinput = input_ids[:, -lookbacklength : ] 
                     print("sequence found {}".format(stoppingc.sequence in self.tokenizer.decode(lookingbackinput[0]))) 
-                ''' 
+                    ''' 
             else: 
                 this_peer_finished = False 
 
             # print("stopping_criteria {}".format(stopping_criteria)) 
-            
+                                
             if this_peer_finished and not synced_gpus: 
                 want_to_quit = True 
                 if approve_quit or (not self.config.check): 
@@ -1632,3 +1649,43 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                 )
         else: 
             return input_ids
+
+import transformers 
+class MultiTokenEOSCriteria2(transformers.StoppingCriteria):
+    """Criteria to stop on the specified multi-token sequence."""
+
+    def __init__(
+        self,
+        sequence: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        initial_decoder_input_length: int,
+        batch_size: int,
+    ) -> None:
+        self.initial_decoder_input_length = initial_decoder_input_length
+        self.done_tracker = [False] * batch_size
+        self.sequence = sequence
+        self.sequence_ids = tokenizer.encode(sequence, add_special_tokens=False)
+        # print(sequence, self.sequence_ids)
+        # we look back for 2 more tokens than it takes to encode our stop sequence
+        # because tokenizers suck, and a model might generate `['\n', '\n']` but our `sequence` is `['\n\n']`
+        # and we don't want to mistakenly not stop a generation because our
+        # (string) stop sequence was output in a different tokenization
+
+        # NOTE: there is a minor danger that this will end up looking back 2 tokens into the past, into the inputs to the model,
+        # and stopping generation immediately as a result. With only 2 extra tokens of lookback, this risk is minimized
+        # Additionally, in lookback_ids_batch we should prevent ever looking back into the inputs as described.
+        self.sequence_id_len = len(self.sequence_ids) + 2
+        self.tokenizer = tokenizer
+
+    def __call__(self, input_ids, scores, **kwargs) -> bool:
+        # For efficiency, we compare the last n tokens where n is the number of tokens in the stop_sequence
+        lookback_ids_batch = input_ids[:, self.initial_decoder_input_length :]
+
+        lookback_ids_batch = lookback_ids_batch[:, -self.sequence_id_len :]
+
+        lookback_tokens_batch = self.tokenizer.batch_decode(lookback_ids_batch)
+
+        for i, done in enumerate(self.done_tracker):
+            if not done:
+                self.done_tracker[i] = self.sequence in lookback_tokens_batch[i]
+        return False not in self.done_tracker
