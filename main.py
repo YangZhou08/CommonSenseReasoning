@@ -41,6 +41,7 @@ parser.add_argument("--widthtree", type = int, default = 8)
 parser.add_argument("--patternstrict", action = "store_true") 
 parser.add_argument("--shotfive", action = "store_true") 
 parser.add_argument("--shottwo", action = "store_true") 
+parser.add_argument("--filteractiveenabled", action = "store_true") 
 
 
 accelerator = Accelerator() 
@@ -83,6 +84,7 @@ model.config.kernel_size = args.kernel_size
 model.config.thr = args.thr 
 model.config.secondrollback = False 
 model.config.treewidth = args.widthtree # here we set the width of the tree 
+model.config.filteractiveenabled = args.filteractiveenabled 
 
 if args.griffin: 
     model = get_llama_griffin2(model, schedule_k) 
