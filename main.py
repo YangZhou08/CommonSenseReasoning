@@ -8,8 +8,8 @@ from datasets import load_dataset
 # from transformers import AutoTokenizer, LlamaForCausalLM 
 from transformers import AutoTokenizer 
 # from llama10 import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
-from llama12 import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
-# from llama12addingtree import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
+# from llama12 import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
+from llama12addingtree import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
 # from llama12 import LlamaForCausalLM 
 import numpy as np 
 from datasets import concatenate_datasets 
@@ -89,8 +89,8 @@ model.config.filteractiveenabled = args.filteractiveenabled
 if args.griffin: 
     model = get_llama_griffin2(model, schedule_k) 
 if args.cats: 
-    # model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
-    model = get_llama_griffin(model, schedule_k) 
+    model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
+    # model = get_llama_griffin(model, schedule_k) 
 
 model.eval() 
 if is_distributed: 
