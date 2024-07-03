@@ -475,6 +475,8 @@ for task in tasks:
     headers = ["Task"] 
     data = [task] 
     if is_distributed: 
+        print("index {} start communication".format(accelerator.process_index)) 
+        dist.barrier() 
         num_sentence = model.module.num_sentence 
         totalgenerationlength = model.module.totalgenerationlength 
         numsentences = torch.tensor([num_sentence, totalgenerationlength], device = args.device) 
