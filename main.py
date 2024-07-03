@@ -89,7 +89,8 @@ model.config.filteractiveenabled = args.filteractiveenabled
 if args.griffin: 
     model = get_llama_griffin2(model, schedule_k) 
 if args.cats: 
-    model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
+    # model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
+    model = get_llama_griffin(model, schedule_k) 
 
 model.eval() 
 if is_distributed: 
