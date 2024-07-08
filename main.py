@@ -84,7 +84,7 @@ model.config.kernel_size = args.kernel_size
 model.config.thr = args.thr 
 model.config.secondrollback = False 
 model.config.treewidth = args.widthtree # here we set the width of the tree 
-model.config.filteractiveenabled = args.filteractiveenabled 
+model.config.filteractiveenabled = args.filteractiveenabled # only used for 8B model 
 
 if args.griffin: 
     model = get_llama_griffin2(model, schedule_k) 
