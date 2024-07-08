@@ -972,7 +972,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.total_roll_back_length_error = 0 
         self.roll_back_length_in_error = [] 
         self.errorinstance = 0 
-        self.verbose = True # manually set to false during measurement 
+        self.verbose = False # manually set to false during measurement 
         
         # for bug debugging investigation only 
         from transformers import AutoTokenizer 
@@ -1577,7 +1577,6 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
 
             # stop if we exceed the maximum length
             if stopping_criteria(input_ids, scores): 
-                print(colored("detecting stopping criteria", "green"), flush = True) 
                 this_peer_finished = True 
                 if self.config.check: 
                     this_peer_finished = this_peer_finished and check_flag 
