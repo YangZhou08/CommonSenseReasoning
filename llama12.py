@@ -1578,8 +1578,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
             # stop if we exceed the maximum length
             if stopping_criteria(input_ids, scores):
                 this_peer_finished = True 
-                if self.config.check: 
-                    this_peer_finished = this_peer_finished and check_flag 
+                this_peer_finished = this_peer_finished and check_flag 
                 
                 if this_peer_finished: 
                     recheckoutcome = False 
@@ -1597,8 +1596,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                             recheckoutcome = recheckoutcome or stoppingc(input_ids, scores) 
                             # print("meet the multi token eos criteria {}".format(stoppingc(input_ids, None))) 
                             # print("meet the multi token eos criteria {}".format(stoppingc(input_ids, scores))) 
-                    if self.config.check: 
-                        this_peer_finished = recheckoutcome 
+                    this_peer_finished = recheckoutcome 
                     '''
                     # print("stop sequence {}".format(stoppingc.sequence)) 
                     lookbacklength = len(self.tokenizer.encode(stoppingc.sequence, add_special_tokens = False)) + 2 

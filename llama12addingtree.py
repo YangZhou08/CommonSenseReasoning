@@ -80,6 +80,8 @@ from termcolor import colored
 
 import numpy as np 
 
+from lm_eval.models.utils import MultiTokenEOSCriteria 
+
 
 NEED_SETUP_CACHE_CLASSES_MAPPING = {
     "static": StaticCache,
@@ -1002,6 +1004,9 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.roll_back_length_in_error = [] 
         self.errorinstance = 0 
         self.verbose = False # manually set to false during measurement 
+        self.flattentreesize = 0 
+        self.batchsizecount = 0 # not for statistics presentation, but for intermediate states 
+        self.averagedraftingbatchsize = 0 # for measuring the tree growing size 
         
         # for bug debugging investigation only 
         from transformers import AutoTokenizer 
@@ -1048,6 +1053,9 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.total_roll_back_length_error = 0 
         self.roll_back_length_in_error = [] 
         self.errorinstance = 0 
+        self.flattentreesize = 0 
+        self.batchsizecount = 0 
+        self.averagedraftingbatchsize = 0 
 
     def forward(
         self,
@@ -1162,6 +1170,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
             # print("seq[:, -1].item() == self.tokenizer.eos_token_id {}".format(seq[0][-1].item() == self.tokenizer.eos_token_id)) 
             if seq[0][-1].item() == self.tokenizer.eos_token_id: 
                 print(colored("adding to completed sequences", "green")) 
+                exit(0) 
                 if not self.checkcompletedsequences(seq): 
                     self.completed_sequences.append((seq, cum_log_prob, kv_cache)) 
             else: 
@@ -1344,10 +1353,26 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         merge_sequence = treetensor[0].tolist() 
         for sequence in treetensor[1:]: 
             i = 0 
-            while i < len(sequence_length) and i < len(merge_sequence) and sequence[i] == merge_sequence[i]: 
+            while i < sequence_length and i < len(merge_sequence) and sequence[i] == merge_sequence[i]: 
                 i += 1 
             merge_sequence.extend(sequence[i:]) 
         return len(merge_sequence) 
+    
+    def rollbacklastchunkstatistic(self, 
+                                   last_total_step, 
+                                   last_error_instance, 
+                                   last_roll_back_length_error, 
+                                   last_flatten_tree_size, 
+                                   last_average_drafting_batch_size): 
+        self.num_steps -= 1 
+        # num_sentence shouldn't be rolled back 
+        self.total_steps -= last_total_step 
+        # total generation length also shouldn't be rolled back 
+        self.errorinstance -= last_error_instance 
+        self.total_roll_back_length_error -= last_roll_back_length_error 
+        self.flattentreesize -= last_flatten_tree_size 
+        # batch size count also shouldn't be rolled back 
+        self.averagedraftingbatchsize -= last_average_drafting_batch_size 
     
     def greedy_search(
         self,
@@ -1470,7 +1495,11 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
             print("beamwidth is {}".format(self.beamwidth)) 
         self.reset_tree() 
         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
-        stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
+        stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList() 
+        for stoppingcrition in stopping_criteria: 
+            if isinstance(stoppingcrition, MultiTokenEOSCriteria): 
+                stoppingcrition.sequence_id_len = len(stoppingcrition.sequence_ids) + self.config.kernel_size 
+        
         if max_length is not None:
             warnings.warn(
                 "`max_length` is deprecated in this function, use"
@@ -1521,7 +1550,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         track_position_ids = None
         track_cache_position = None
         want_to_quit = False
-        approve_quit = False 
+        # approve_quit = False 
+        approve_quit = True 
         last_input_ids_print_pos = initial_len # this variable is for visualization 
         outputs = None 
         
@@ -1581,6 +1611,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
 
             self.set_inference_mode("partial") 
             model_inputs["past_key_values"].mode = "decoding" 
+            self.batchsizecount += model_inputs["input_ids"].shape[0] 
             if self.config.check and (currentlength - last_check) == kernel_size or (self.config.check and want_to_quit): # to avoid one more pass of the sparse model, here we use a dummy operation to fill in one step into the kv cache 
                 # outputs.past_key_values.adding_one_entry() 
                 # print("model_inputs[past_key_values].shape {}".format(model_inputs["past_key_values"].key_cache[0].shape)) 
@@ -1639,8 +1670,16 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     print() 
             
             check_flag = False 
+            last_total_step = 0 
+            last_roll_back_length_error = 0 
+            last_error_instance = 0 
+            last_flatten_tree_size = 0 
+            last_drafting_batch_size = 0 
             if self.config.check: 
-                if (currentlength - last_check) == kernel_size or want_to_quit: 
+                if (currentlength - last_check) == kernel_size: 
+                    self.averagedraftingbatchsize += self.batchsizecount/kernel_size 
+                    last_drafting_batch_size = self.batchsizecount/kernel_size 
+                    self.batchsizecount = 0 
                     check_flag = True 
                     past_key_values = model_inputs["past_key_values"] 
                     # past_key_values = outputs.past_key_values 
@@ -1651,6 +1690,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     past_key_values.mode = "checking" # cache is being roll back 
                     checklength = currentlength - last_check 
                     check_input_ids = model_inputs["extended_input_ids"][:, -checklength:] 
+                    self.flattentreesize += self.merging_tree_into_one_sequence(check_input_ids) 
+                    last_flatten_tree_size = self.merging_tree_into_one_sequence(check_input_ids) 
                     # print("input_ids shape {}".format(check_input_ids.shape)) 
                     check_attention_mask = model_inputs["attention_mask"] 
                     # print("check_attention_mask shape {}".format(check_attention_mask.shape)) 
@@ -1729,10 +1770,16 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     last_check = input_ids.shape[1] 
                     self.num_steps += 1 
                     self.total_steps += lengthacceptsbig + 1 
+                    last_total_step = lengthacceptsbig + 1 
                     if lengthacceptsbig != checklength - 1: 
                         self.errorinstance += 1 
+                        last_error_instance = 1 
                         self.total_roll_back_length_error += (checklength - 1 - lengthacceptsbig) 
-                        self.roll_back_length_in_error.append(checklength - 1 - lengthacceptsbig) 
+                        # self.roll_back_length_in_error.append(checklength - 1 - lengthacceptsbig) 
+                        last_roll_back_length_error = checklength - 1 - lengthacceptsbig 
+                    else: 
+                        last_error_instance = 0 
+                        last_roll_back_length_error = 0 
                     if step == 0: 
                         approve_quit = True 
                     
@@ -1846,24 +1893,26 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     this_peer_finished = True 
 
             # stop if we exceed the maximum length
-            if stopping_criteria(input_ids, scores):
-                
+            if stopping_criteria(input_ids, scores): 
                 this_peer_finished = True 
-                '''
+                
+                if self.config.check: 
+                    this_peer_finished = this_peer_finished and check_flag 
+                
                 if this_peer_finished: 
+                    recheckoutcome = False 
                     
-                    from lm_eval.models.utils import MultiTokenEOSCriteria 
+                    from transformers.generation.stopping_criteria import MaxLengthCriteria 
                     for stoppingc in stopping_criteria: 
+                        if isinstance(stoppingc, MaxLengthCriteria): 
+                            recheckoutcome = recheckoutcome or stoppingc(input_ids, scores) 
+                        
                         if isinstance(stoppingc, MultiTokenEOSCriteria): 
-                            break 
+                            stoppingc.done_tracker = [False] * input_ids.shape[0] 
+                            recheckoutcome = recheckoutcome or stoppingc(input_ids, scores) 
+                    if self.config.check: 
+                        this_peer_finished = recheckoutcome 
 
-                    print("stop sequence {}".format(stoppingc.sequence)) 
-                    lookbacklength = len(self.tokenizer.encode(stoppingc.sequence, add_special_tokens = False)) + 2 
-                    print("sequence in tokenids {}".format(self.tokenizer.encode(stoppingc.sequence, add_special_tokens = False))) 
-                    print("input_ids lookingback {}".format(input_ids[:, -lookbacklength : ])) 
-                    lookingbackinput = input_ids[:, -lookbacklength : ] 
-                    print("sequence found {}".format(stoppingc.sequence in self.tokenizer.decode(lookingbackinput[0]))) 
-                ''' 
             else: 
                 this_peer_finished = False 
 
@@ -1883,6 +1932,9 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
             streamer.end()
         
         self.totalgenerationlength += input_ids.shape[1] - initial_len 
+        self.batchsizecount = 0 
+        if self.config.check: 
+            self.rollbacklastchunkstatistic(last_total_step, last_error_instance, last_roll_back_length_error, last_flatten_tree_size, last_average_drafting_batch_size = last_drafting_batch_size) 
         # print("total generation length {}".format(self.totalgenerationlength)) 
         # print(self.tokenizer.decode(input_ids[0][initial_len : ])) 
 
