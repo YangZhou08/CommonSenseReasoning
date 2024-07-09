@@ -506,6 +506,17 @@ for task in tasks:
             headers += ["Total Roll Back Length Error", "Error Instance", "Average Roll Back Length Error"] 
             data += [total_roll_back_length_error, errorinstance, averagerollbacklengtherror] 
             np.save("{}_rollbacklengthinerror_{}.npy".format(task, accelerator.process_index), np.array(model.module.roll_back_length_in_error)) 
+            
+            # tree size statistics 
+            totaltreesize = model.module.flattentreesize # flattened tree size 
+            draftingtreesize = model.module.averagedraftingbatchsize # average drafting batch size 
+            totaltreesize = torch.tensor([totaltreesize, draftingtreesize], device = args.device, dtype = torch.float) 
+            dist.all_reduce(totaltreesize, op = dist.ReduceOp.SUM) 
+            draftingtreesize = totaltreesize[1].item() 
+            totaltreesize = totaltreesize[0].item() 
+            headers += ["Effective Tree Size", "Drafting Tree Size"] 
+            data += [totaltreesize/num_step, draftingtreesize/num_step] 
+            
     else: 
         num_sentence = model.num_sentence 
         totalgenerationlength = model.totalgenerationlength 
@@ -531,6 +542,10 @@ for task in tasks:
     print("Here are the statistics for inference") 
     if accelerator.is_main_process: 
         print(tabulate([data], headers=headers, tablefmt="grid")) 
+    # if is_distributed: 
+    #     model.module.updatestatistic() 
+    # else: 
+    #     model.updatestatistic() 
     countaccum[task] = [totalexamples, correctanswers, correctanswers / totalexamples] 
 
 if accelerator.is_main_process: 
