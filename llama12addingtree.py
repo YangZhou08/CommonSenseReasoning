@@ -1322,7 +1322,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         for layer in self.model.layers: 
             layer.mlp.inference_mode = mode 
     
-    def merging_tree_into_one_sequence(treetensor):
+    def merging_tree_into_one_sequence2(self, treetensor): 
         num_sequences, sequence_length = treetensor.shape
         # treetensor = treetensor.clone().cpu() 
         merge_sequence = []
@@ -1690,8 +1690,10 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     past_key_values.mode = "checking" # cache is being roll back 
                     checklength = currentlength - last_check 
                     check_input_ids = model_inputs["extended_input_ids"][:, -checklength:] 
-                    self.flattentreesize += self.merging_tree_into_one_sequence(check_input_ids) 
-                    last_flatten_tree_size = self.merging_tree_into_one_sequence(check_input_ids) 
+                    # self.flattentreesize += self.merging_tree_into_one_sequence(check_input_ids) 
+                    # last_flatten_tree_size = self.merging_tree_into_one_sequence(check_input_ids) 
+                    _, self.flattentreesize = self.merging_tree_into_one_sequence2(check_input_ids) 
+                    last_flatten_tree_size = self.flattentreesize 
                     # print("input_ids shape {}".format(check_input_ids.shape)) 
                     check_attention_mask = model_inputs["attention_mask"] 
                     # print("check_attention_mask shape {}".format(check_attention_mask.shape)) 
