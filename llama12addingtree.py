@@ -1692,7 +1692,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     check_input_ids = model_inputs["extended_input_ids"][:, -checklength:] 
                     # self.flattentreesize += self.merging_tree_into_one_sequence(check_input_ids) 
                     # last_flatten_tree_size = self.merging_tree_into_one_sequence(check_input_ids) 
-                    _, self.flattentreesize = self.merging_tree_into_one_sequence2(check_input_ids) 
+                    _, lengthmergedtree = self.merging_tree_into_one_sequence2(check_input_ids) 
+                    self.flattentreesize += lengthmergedtree 
                     last_flatten_tree_size = self.flattentreesize 
                     # print("input_ids shape {}".format(check_input_ids.shape)) 
                     check_attention_mask = model_inputs["attention_mask"] 
