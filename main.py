@@ -463,20 +463,18 @@ for task in tasks:
         # if accelerator.is_main_process: 
             # print("Total examples: {} Correct answers: {}".format(totalexamples, correctanswers)) 
     
-    if is_distributed: 
-        totalexamples = torch.tensor(totalexamples, device = args.device) 
-        correctanswers = torch.tensor(correctanswers, device = args.device) 
-        dist.all_reduce(totalexamples, op = dist.ReduceOp.SUM) 
-        dist.all_reduce(correctanswers, op = dist.ReduceOp.SUM) 
-        totalexamples = totalexamples.item() 
-        correctanswers = correctanswers.item() 
-    
     # statistics 
     headers = ["Task"] 
     data = [task] 
     if is_distributed: 
         print("index {} start communication".format(accelerator.process_index)) 
         dist.barrier() 
+        totalexamples = torch.tensor(totalexamples, device = args.device) 
+        correctanswers = torch.tensor(correctanswers, device = args.device) 
+        dist.all_reduce(totalexamples, op = dist.ReduceOp.SUM) 
+        dist.all_reduce(correctanswers, op = dist.ReduceOp.SUM) 
+        totalexamples = totalexamples.item() 
+        correctanswers = correctanswers.item() 
         num_sentence = model.module.num_sentence 
         totalgenerationlength = model.module.totalgenerationlength 
         numsentences = torch.tensor([num_sentence, totalgenerationlength], device = args.device) 
