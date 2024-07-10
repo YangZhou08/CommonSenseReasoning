@@ -1735,7 +1735,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     _, lengthmergedtree = self.merging_tree_into_one_sequence2(check_input_ids) 
                     print("lengthmergedtree {}".format(lengthmergedtree)) 
                     self.flattentreesize += lengthmergedtree 
-                    last_flatten_tree_size = self.flattentreesize 
+                    last_flatten_tree_size = lengthmergedtree 
                     # print("input_ids shape {}".format(check_input_ids.shape)) 
                     check_attention_mask = model_inputs["attention_mask"] 
                     # print("check_attention_mask shape {}".format(check_attention_mask.shape)) 
