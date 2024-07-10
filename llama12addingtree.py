@@ -1497,8 +1497,10 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
         stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList() 
         for stoppingcrition in stopping_criteria: 
+            print(stopping_criteria) 
             if isinstance(stoppingcrition, MultiTokenEOSCriteria): 
                 stoppingcrition.sequence_id_len = len(stoppingcrition.sequence_ids) + self.config.kernel_size 
+        exit(0) 
         
         if max_length is not None:
             warnings.warn(
