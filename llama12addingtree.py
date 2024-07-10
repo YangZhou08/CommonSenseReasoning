@@ -1500,7 +1500,6 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
             print(stoppingcrition) 
             if isinstance(stoppingcrition, MultiTokenEOSCriteria): 
                 stoppingcrition.sequence_id_len = len(stoppingcrition.sequence_ids) + self.config.kernel_size 
-        exit(0) 
         
         if max_length is not None:
             warnings.warn(
@@ -1899,6 +1898,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
 
             # stop if we exceed the maximum length
             if stopping_criteria(input_ids, scores): 
+                print(colored("stopping_criteria detected", "green")) 
                 this_peer_finished = True 
                 
                 if self.config.check: 
