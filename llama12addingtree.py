@@ -1733,6 +1733,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     # self.flattentreesize += self.merging_tree_into_one_sequence(check_input_ids) 
                     # last_flatten_tree_size = self.merging_tree_into_one_sequence(check_input_ids) 
                     _, lengthmergedtree = self.merging_tree_into_one_sequence2(check_input_ids) 
+                    print("lengthmergedtree {}".format(lengthmergedtree)) 
                     self.flattentreesize += lengthmergedtree 
                     last_flatten_tree_size = self.flattentreesize 
                     # print("input_ids shape {}".format(check_input_ids.shape)) 
