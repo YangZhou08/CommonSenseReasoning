@@ -80,8 +80,6 @@ from termcolor import colored
 
 import numpy as np 
 
-from lm_eval.models.utils import MultiTokenEOSCriteria 
-
 
 NEED_SETUP_CACHE_CLASSES_MAPPING = {
     "static": StaticCache,
