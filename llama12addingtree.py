@@ -1937,7 +1937,6 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
 
             # stop if we exceed the maximum length
             if stopping_criteria(input_ids, scores): 
-                print(colored("stopping_criteria detected", "green")) 
                 this_peer_finished = True 
                 
                 if self.config.check: 
@@ -1949,17 +1948,13 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     from transformers.generation.stopping_criteria import MaxLengthCriteria 
                     for stoppingc in stopping_criteria: 
                         if isinstance(stoppingc, MaxLengthCriteria): 
-                            print("MaxLengthCriteria {}".format(stoppingc(input_ids, scores))) 
                             recheckoutcome = recheckoutcome or stoppingc(input_ids, scores) 
                         
                         if isinstance(stoppingc, MultiTokenEOSCriteria): 
                             stoppingc.done_tracker = [False] * input_ids.shape[0] 
-                            print("MultiTokenEOSCriteria {}".format(stoppingc(input_ids, scores))) 
                             recheckoutcome = recheckoutcome or stoppingc(input_ids, scores) 
                     if self.config.check: 
                         this_peer_finished = recheckoutcome 
-                        print("this_peer_finished {}".format(this_peer_finished)) 
-                        exit(0) 
 
             else: 
                 this_peer_finished = False 
