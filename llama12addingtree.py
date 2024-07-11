@@ -1209,7 +1209,6 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
             # print("seq[:, -1].item() == self.tokenizer.eos_token_id {}".format(seq[0][-1].item() == self.tokenizer.eos_token_id)) 
             if seq[0][-1].item() == self.tokenizer.eos_token_id: 
                 print(colored("adding to completed sequences", "green")) 
-                exit(0) 
                 if not self.checkcompletedsequences(seq): 
                     self.completed_sequences.append((seq, cum_log_prob, kv_cache)) 
             else: 
@@ -1684,6 +1683,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                 for i in range(next_token_logits.shape[0]): 
                     topk, topkidx = torch.topk(next_token_probs[i], self.k, dim = -1) # Decoding line here, trying to instead of finding the top1, we find topk 
                     for logprob, ids in zip(topk, topkidx): 
+                        if ids.item() == self.tokenizer.eos_token_id: 
+                            continue # ignore sequences that have eos_token 
                         extended_input_ids = model_inputs["extended_input_ids"][i] 
                         outputlogprob = logprob 
                         logprob = model_inputs["active_probs"][i] + logprob.item() # TODO print out logprob shape 
@@ -1840,6 +1841,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                     self.completed_sequences = [] 
                     # self.beam = [(input_ids, next_token_probs[0][next_tokens.item()] + accumulated_logprob, past_key_values)] 
                     self.beam = [(input_ids, next_token_probs[0][next_tokens.item()], past_key_values)] 
+                    if next_tokens.item() == self.tokenizer.eos_token_id: # if large model decodes eos token, we break 
+                        break 
                 
             if synced_gpus and this_peer_finished:
                 continue  # don't waste resources running the code we don't need 
