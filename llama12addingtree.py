@@ -1537,7 +1537,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList() 
         for stoppingcrition in stopping_criteria: 
             
-            if isinstance(stoppingcrition, MultiTokenEOSCriteria): 
+            if isinstance(stoppingcrition, MultiTokenEOSCriteria) and self.config.check: 
                 stoppingcrition.sequence_id_len = len(stoppingcrition.sequence_ids) + self.config.kernel_size 
         
         if max_length is not None:
