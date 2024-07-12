@@ -53,7 +53,7 @@ from accelerate.utils import InitProcessGroupKwargs
 from datetime import timedelta 
 # from accelerate.utils import DistributedDataParallelKwargs 
 
-kwargs = InitProcessGroupKwargs(timeout = timedelta(minutes = 30)) 
+kwargs = InitProcessGroupKwargs(timeout = timedelta(minutes = 60)) 
 accelerator = Accelerator(kwargs_handlers=[kwargs]) 
 
 # Check if we are in a distributed setup
@@ -444,6 +444,10 @@ for task in tasks:
         correctanswers += checkcriteria 
         # if accelerator.is_main_process: 
             # print("Total examples: {} Correct answers: {}".format(totalexamples, correctanswers)) 
+        
+        # adding synchronization rounds 
+        if is_distributed and i == len(dataloader)//2: 
+            dist.barrier() 
     
     # statistics 
     headers = ["Task"] 
