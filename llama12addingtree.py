@@ -1042,7 +1042,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.total_roll_back_length_error = 0 
         self.roll_back_length_in_error = [] 
         self.errorinstance = 0 
-        self.verbose = True # manually set to false during measurement 
+        self.verbose = False # manually set to false during measurement 
         self.flattentreesize = 0 
         self.batchsizecount = 0 # not for statistics presentation, but for intermediate states 
         self.averagedraftingbatchsize = 0 # for measuring the tree growing size 
