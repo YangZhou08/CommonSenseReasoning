@@ -46,7 +46,7 @@ parser.add_argument("--shottwo", action = "store_true")
 parser.add_argument("--filteractiveenabled", action = "store_true") 
 
 os.environ['NCCL_TIMEOUT'] = '7200'  # For 2 hours 
-os.environ['NCCL_BLOCKING_WAIT'] = '1'
+os.environ['TORCH_NCCL_BLOCKING_WAIT'] = '1'
 print("NCCL_TIMEOUT {}".format(os.environ['NCCL_TIMEOUT'])) 
 
 accelerator = Accelerator() 
