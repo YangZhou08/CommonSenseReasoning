@@ -57,11 +57,6 @@ from datetime import timedelta
 is_distributed = accelerator.distributed_type != "NO" 
 print("is_distributed {}".format(is_distributed)) 
 
-os.environ['NCCL_TIMEOUT'] = str(30 * 60 * 1000)  # 30 minutes in milliseconds 
-
-# if dist.is_available() and dist.is_initialized():
-    # dist.init_process_group(backend='nccl', timeout=timedelta(minutes=30)) 
-
 args = parser.parse_args() 
 tasks = args.tasks.split(",") 
 print(args) 
@@ -107,7 +102,6 @@ if args.cats:
 model.eval() 
 if is_distributed: 
     model = accelerator.prepare(model) 
-    model.process_group.timeout = 1800 
 
 def compensatingdataset(dataset, datasetname): 
     if len(dataset) % accelerator.num_processes == 0 or not is_distributed: 
