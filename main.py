@@ -49,8 +49,8 @@ parser.add_argument("--filteractiveenabled", action = "store_true")
 from accelerate.utils import DistributedDataParallelKwargs
 from datetime import timedelta
 
-ddp_kwargs = DistributedDataParallelKwargs(timeout=timedelta(minutes=30))
-accelerator = Accelerator(kwargs_handlers=[ddp_kwargs])
+# ddp_kwargs = DistributedDataParallelKwargs(timeout=timedelta(minutes=30)) 
+accelerator = Accelerator(kwargs_handlers=[{'timeout': timedelta(minutes=30)}]) 
 
 # Check if we are in a distributed setup
 is_distributed = accelerator.distributed_type != "NO" 
