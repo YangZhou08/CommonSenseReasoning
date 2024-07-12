@@ -451,7 +451,6 @@ for task in tasks:
     if is_distributed: 
         print("index {} start communication".format(accelerator.process_index)) 
         # dist.barrier(timeout=timedelta(minutes=30)) 
-        dist.barrier() 
         totalexamples = torch.tensor(totalexamples, device = args.device) 
         correctanswers = torch.tensor(correctanswers, device = args.device) 
         dist.all_reduce(totalexamples, op = dist.ReduceOp.SUM) 
