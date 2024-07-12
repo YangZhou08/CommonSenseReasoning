@@ -50,11 +50,11 @@ os.environ['TORCH_NCCL_BLOCKING_WAIT'] = '1'
 print("NCCL_TIMEOUT {}".format(os.environ['NCCL_TIMEOUT'])) 
 
 from accelerate.utils import InitProcessGroupKwargs 
+from datetime import timedelta 
 # from accelerate.utils import DistributedDataParallelKwargs 
 
 kwargs = InitProcessGroupKwargs(timeout = timedelta(minutes = 30)) 
 accelerator = Accelerator(kwargs_handlers=[kwargs]) 
-from datetime import timedelta
 
 # Check if we are in a distributed setup
 is_distributed = accelerator.distributed_type != "NO" 
