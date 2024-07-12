@@ -49,12 +49,12 @@ os.environ['NCCL_TIMEOUT'] = '1800'  # For 2 hours
 os.environ['TORCH_NCCL_BLOCKING_WAIT'] = '1'
 print("NCCL_TIMEOUT {}".format(os.environ['NCCL_TIMEOUT'])) 
 
-accelerator = Accelerator() 
-# from accelerate.utils import DistributedDataParallelKwargs
-from datetime import timedelta
+from accelerate.utils import InitProcessGroupKwargs 
+# from accelerate.utils import DistributedDataParallelKwargs 
 
-# ddp_kwargs = DistributedDataParallelKwargs(timeout=timedelta(minutes=30)) 
-# accelerator = Accelerator(kwargs_handlers=[{'timeout': timedelta(minutes=30)}]) 
+kwargs = InitProcessGroupKwargs(timeout = timedelta(minutes = 30)) 
+accelerator = Accelerator(kwargs_handlers=[kwargs]) 
+from datetime import timedelta
 
 # Check if we are in a distributed setup
 is_distributed = accelerator.distributed_type != "NO" 
@@ -451,19 +451,17 @@ for task in tasks:
     if is_distributed: 
         print("index {} start communication".format(accelerator.process_index)) 
         # dist.barrier(timeout=timedelta(minutes=30)) 
-        timeout = timedelta(minutes=30) 
-        new_group = dist.new_group(timeout=timeout)
-        dist.barrier(group=new_group) 
+        dist.barrier() 
         totalexamples = torch.tensor(totalexamples, device = args.device) 
         correctanswers = torch.tensor(correctanswers, device = args.device) 
-        dist.all_reduce(totalexamples, op = dist.ReduceOp.SUM, group = new_group) 
-        dist.all_reduce(correctanswers, op = dist.ReduceOp.SUM, group = new_group) 
+        dist.all_reduce(totalexamples, op = dist.ReduceOp.SUM) 
+        dist.all_reduce(correctanswers, op = dist.ReduceOp.SUM) 
         totalexamples = totalexamples.item() 
         correctanswers = correctanswers.item() 
         num_sentence = model.module.num_sentence 
         totalgenerationlength = model.module.totalgenerationlength 
         numsentences = torch.tensor([num_sentence, totalgenerationlength], device = args.device) 
-        dist.all_reduce(numsentences, op = dist.ReduceOp.SUM, group = new_group) 
+        dist.all_reduce(numsentences, op = dist.ReduceOp.SUM) 
         num_sentence = numsentences[0].item() 
         totalgenerationlength = numsentences[1].item() 
         averagegenerationlength = totalgenerationlength / num_sentence 
@@ -473,7 +471,7 @@ for task in tasks:
             total_step = model.module.total_steps 
             num_step = model.module.num_steps 
             totalsteps = torch.tensor([total_step, num_step], device = args.device) 
-            dist.all_reduce(totalsteps, op = dist.ReduceOp.SUM, group = new_group) 
+            dist.all_reduce(totalsteps, op = dist.ReduceOp.SUM) 
             total_step = totalsteps[0].item() 
             num_step = totalsteps[1].item() 
             aal = total_step / num_step 
@@ -482,7 +480,7 @@ for task in tasks:
             total_roll_back_length_error = model.module.total_roll_back_length_error 
             errorinstance = model.module.errorinstance 
             totalrollbacklengtherrors = torch.tensor([total_roll_back_length_error, errorinstance], device = args.device) 
-            dist.all_reduce(totalrollbacklengtherrors, op = dist.ReduceOp.SUM, group = new_group) 
+            dist.all_reduce(totalrollbacklengtherrors, op = dist.ReduceOp.SUM) 
             total_roll_back_length_error = totalrollbacklengtherrors[0].item() 
             errorinstance = totalrollbacklengtherrors[1].item() 
             averagerollbacklengtherror = total_roll_back_length_error / errorinstance 
@@ -494,7 +492,7 @@ for task in tasks:
             totaltreesize = model.module.flattentreesize # flattened tree size 
             draftingtreesize = model.module.averagedraftingbatchsize # average drafting batch size 
             totaltreesize = torch.tensor([totaltreesize, draftingtreesize], device = args.device, dtype = torch.float) 
-            dist.all_reduce(totaltreesize, op = dist.ReduceOp.SUM, group = new_group) 
+            dist.all_reduce(totaltreesize, op = dist.ReduceOp.SUM) 
             draftingtreesize = totaltreesize[1].item() 
             totaltreesize = totaltreesize[0].item() 
             headers += ["Effective Tree Size", "Drafting Tree Size"] 
