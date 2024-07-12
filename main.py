@@ -22,6 +22,7 @@ from tqdm import tqdm
 from termcolor import colored 
 from tabulate import tabulate 
 import copy 
+import os 
 
 ### Parsing the arguments ### 
 parser = argparse.ArgumentParser(description = "CommonSense Reasoning with generation and chain-of-thoughts") 
@@ -45,16 +46,21 @@ parser.add_argument("--shottwo", action = "store_true")
 parser.add_argument("--filteractiveenabled", action = "store_true") 
 
 
-# accelerator = Accelerator() 
-from accelerate.utils import DistributedDataParallelKwargs
+accelerator = Accelerator() 
+# from accelerate.utils import DistributedDataParallelKwargs
 from datetime import timedelta
 
 # ddp_kwargs = DistributedDataParallelKwargs(timeout=timedelta(minutes=30)) 
-accelerator = Accelerator(kwargs_handlers=[{'timeout': timedelta(minutes=30)}]) 
+# accelerator = Accelerator(kwargs_handlers=[{'timeout': timedelta(minutes=30)}]) 
 
 # Check if we are in a distributed setup
 is_distributed = accelerator.distributed_type != "NO" 
 print("is_distributed {}".format(is_distributed)) 
+
+os.environ['NCCL_TIMEOUT'] = str(30 * 60 * 1000)  # 30 minutes in milliseconds
+
+if dist.is_available() and dist.is_initialized():
+    dist.init_process_group(backend='nccl', timeout=timedelta(minutes=30))
 
 args = parser.parse_args() 
 tasks = args.tasks.split(",") 
