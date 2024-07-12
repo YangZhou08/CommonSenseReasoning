@@ -108,7 +108,7 @@ def select_neurons(neuron_stat, method, k):
         raise NotImplementedError
 
     return weight, indices
-def get_llama_griffin(model,  k_schedule):
+def get_llama_griffin_no_tree(model,  k_schedule):
     config = model.config
     for i, l in enumerate(model.model.layers):
         new_mlp = GriffinLlamaMLP(config, k_schedule[i])
@@ -131,7 +131,7 @@ def get_llama_griffin(model,  k_schedule):
     
     return model
 
-def get_llama_griffin2(model,  k_schedule):
+def get_llama_griffin2_no_tree(model,  k_schedule):
     config = model.config
     for i, l in enumerate(model.model.layers):
         new_mlp = GriffinLlamaMLP2(config, k_schedule[i])
@@ -154,7 +154,7 @@ def get_llama_griffin2(model,  k_schedule):
     
     return model
 
-def get_llama_griffin3(model,  k_schedule):
+def get_llama_griffin3_no_tree(model,  k_schedule):
     config = model.config
     for i, l in enumerate(model.model.layers):
         # new_mlp = GriffinLlamaMLP2(config, k_schedule[i]) 
@@ -957,7 +957,7 @@ class LlamaModel(LlamaPreTrainedModel):
 
         return causal_mask
 
-class LlamaForCausalLM(LlamaPreTrainedModel):
+class LlamaForCausalLMNoTree(LlamaPreTrainedModel):
     _tied_weights_keys = ["lm_head.weight"]
 
     def __init__(self, config):
