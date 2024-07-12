@@ -233,14 +233,21 @@ def get_dataset(datasetname, is_distributed = False, requirements = ""):
         dataloader = DataLoader(dataset, batch_size = 1, shuffle = False) 
     return dataloader, cotprompt 
 
+class MaxLengthCriteria(transformers.StoppingCriteria): 
+    def __init__(self, max_length: int):
+        self.max_length = max_length
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+        return input_ids.shape[-1] >= self.max_length
 
 def stop_sequences_criteria(
     tokenizer: transformers.PreTrainedTokenizer,
     stop_sequences: List[str],
     initial_decoder_input_length: int,
     batch_size: int,
+    max_length: int = 256, 
 ) -> transformers.StoppingCriteriaList:
-    return transformers.StoppingCriteriaList(
+    outputstoppingcriteria = transformers.StoppingCriteriaList(
         [
             *[
                 MultiTokenEOSCriteria(
@@ -250,6 +257,11 @@ def stop_sequences_criteria(
             ],
         ]
     ) 
+    
+    max_length_criteria = MaxLengthCriteria(max_length) 
+    outputstoppingcriteria.append(max_length_criteria) 
+    
+    return outputstoppingcriteria 
 
 def criteriaoutput(datasetname, outputs, inputexample): 
     if datasetname == "csqa": 
@@ -396,7 +408,7 @@ for task in tasks:
         input_ids = torch.cat([promptids, input_ids], dim = 1) 
         input_ids = input_ids.to(args.device) 
         # stop_criteria = stop_sequences_criteria(tokenizer, "Q:", input_ids.shape[1], input_ids.shape[0]) 
-        stop_criteria = stop_sequences_criteria(tokenizer, ["Q:"], input_ids.shape[1], input_ids.shape[0]) 
+        stop_criteria = stop_sequences_criteria(tokenizer, ["Q:"], input_ids.shape[1], input_ids.shape[0], 256) 
         if is_distributed: 
             outputs = model.module.generate(
                 input_ids = input_ids, 
