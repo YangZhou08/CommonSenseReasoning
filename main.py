@@ -45,6 +45,8 @@ parser.add_argument("--shotfive", action = "store_true")
 parser.add_argument("--shottwo", action = "store_true") 
 parser.add_argument("--filteractiveenabled", action = "store_true") 
 
+os.environ['NCCL_TIMEOUT'] = '7200'  # For 2 hours 
+print("NCCL_TIMEOUT {}".format(os.environ['NCCL_TIMEOUT'])) 
 
 accelerator = Accelerator() 
 # from accelerate.utils import DistributedDataParallelKwargs
