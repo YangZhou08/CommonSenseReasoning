@@ -258,8 +258,8 @@ def stop_sequences_criteria(
         ]
     ) 
     
-    max_length_criteria = MaxLengthCriteria(max_length) 
-    outputstoppingcriteria.append(max_length_criteria) 
+    # max_length_criteria = MaxLengthCriteria(max_length) 
+    # outputstoppingcriteria.append(max_length_criteria) 
     
     return outputstoppingcriteria 
 
@@ -414,7 +414,7 @@ for task in tasks:
                 input_ids = input_ids, 
                 attention_mask = None, 
                 # max_length = input_ids.shape[1] + 20, 
-                max_length = input_ids.shape[1] + 500, 
+                max_length = input_ids.shape[1] + 256, 
                 use_cache = True, 
                 stopping_criteria = stop_criteria, 
                 pad_token_id = tokenizer.pad_token_id, 
@@ -425,7 +425,7 @@ for task in tasks:
             outputs = model.generate(
                 input_ids = input_ids, 
                 attention_mask = None, 
-                max_length = input_ids.shape[1] + 500, 
+                max_length = input_ids.shape[1] + 256, 
                 use_cache = True, 
                 stopping_criteria = stop_criteria, 
                 pad_token_id = tokenizer.pad_token_id, 
