@@ -16,7 +16,7 @@
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks strategyqa --model meta-llama/Llama-2-7b-chat-hf --shotfive --cats --check --kernel_size 16 --spr 0.4 --thr 0.1 --widthtree 1 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks strategyqa --model meta-llama/Llama-2-7b-chat-hf --shotfive --griffin --check --kernel_size 16 --spr 0.4 --thr 0.1 --widthtree 1 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks strategyqa --model meta-llama/Llama-2-7b-chat-hf --shotfive --cats --check --kernel_size 16 --spr 0.4 --thr 0.01 --widthtree 1 
-accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks strategyqa --model meta-llama/Llama-2-7b-chat-hf --shotfive --griffin --check --kernel_size 16 --spr 0.4 --thr 0.005 --widthtree 1 
+accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks strategyqa --model meta-llama/Llama-2-7b-chat-hf --shotfive --griffin --check --kernel_size 16 --spr 0.4 --thr 0.001 --widthtree 1 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks csqa --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --griffin --check --kernel_size 16 --spr 0.4 --thr 0.05 --widthtree 8 --patternstrict 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks csqa,strategyqa,sports,date --model meta-llama/Meta-Llama-3-8B --shotfive --griffin
 
