@@ -111,7 +111,7 @@ else:
     if args.griffin: 
         model = get_llama_griffin2_no_tree(model, schedule_k) 
     if args.cats: 
-        model = get_llama_griffin_no_tree(model, schedule_k, patternstrict = args.patternstrict) 
+        model = get_llama_griffin_no_tree(model, schedule_k) 
         # model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
 
 model.eval() 
