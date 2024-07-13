@@ -95,8 +95,9 @@ model.config.thr = args.thr
 model.config.secondrollback = False 
 model.config.treewidth = args.widthtree # here we set the width of the tree 
 model.config.filteractiveenabled = args.filteractiveenabled # only used for 8B model 
-if args.check: 
-    exit(0) 
+
+print("You are running the wrong modelfile") 
+exit(0) 
 
 if args.check: 
     if args.griffin: 

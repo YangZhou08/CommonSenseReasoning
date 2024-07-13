@@ -10,6 +10,7 @@ from transformers import AutoTokenizer
 # from llama10 import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
 # from llama12 import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
 from llama12addingtree import get_llama_griffin, get_llama_griffin2, LlamaForCausalLM 
+from llama12 import get_llama_griffin_no_tree, get_llama_griffin2_no_tree, LlamaForCausalLMNoTree 
 from llama12addingtree import MultiTokenEOSCriteria 
 # from llama12 import LlamaForCausalLM 
 import numpy as np 
@@ -79,7 +80,11 @@ else:
     tokenizer.pad_token = tokenizer.eos_token 
     print("We now use eos_token as pad token") 
 tokenizer.padding_side = "left" 
-model = LlamaForCausalLM.from_pretrained(args.model, device_map = args.device, torch_dtype = torch.bfloat16) 
+
+if args.check: 
+    model = LlamaForCausalLM.from_pretrained(args.model, device_map = args.device, torch_dtype = torch.bfloat16) 
+else: 
+    model = LlamaForCausalLMNoTree.from_pretrained(args.model, device_map = args.device, torch_dtype = torch.bfloat16) 
 
 if args.griffin: 
     schedule_k = [args.spr for _ in range(model.config.num_hidden_layers)] 
@@ -96,11 +101,18 @@ model.config.secondrollback = False
 model.config.treewidth = args.widthtree # here we set the width of the tree 
 model.config.filteractiveenabled = args.filteractiveenabled # only used for 8B model 
 
-if args.griffin: 
-    model = get_llama_griffin2(model, schedule_k) 
-if args.cats: 
-    model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
-    # model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
+if args.check: 
+    if args.griffin: 
+        model = get_llama_griffin2(model, schedule_k) 
+    if args.cats: 
+        model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
+        # model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
+else: 
+    if args.griffin: 
+        model = get_llama_griffin2_no_tree(model, schedule_k) 
+    if args.cats: 
+        model = get_llama_griffin_no_tree(model, schedule_k, patternstrict = args.patternstrict) 
+        # model = get_llama_griffin(model, schedule_k, patternstrict = args.patternstrict) 
 
 model.eval() 
 if is_distributed: 
