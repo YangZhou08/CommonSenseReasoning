@@ -24,6 +24,30 @@ from termcolor import colored
 from tabulate import tabulate 
 import copy 
 import os 
+import random 
+
+def set_seed(seed):
+    # Python's built-in random module
+    random.seed(seed)
+    
+    # NumPy
+    np.random.seed(seed)
+    
+    # PyTorch
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)  # for multi-GPU.
+        
+    # CUDA convolution determinism
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    
+    # Set a fixed value for the hash seed
+    os.environ["PYTHONHASHSEED"] = str(seed)
+
+# Usage
+set_seed(42)  # You can use any integer value as the seed 
 
 ### Parsing the arguments ### 
 parser = argparse.ArgumentParser(description = "CommonSense Reasoning with generation and chain-of-thoughts") 
