@@ -9,9 +9,15 @@
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks strategyqa,sports,date --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks strategyqa,sports,date --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --cats --spr 0.4 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks strategyqa,sports,date --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --griffin --spr 0.4 
-accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive 
+# accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --cats 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --griffin 
+accelerate launch --main_process_port 29510 --num_processes 8 main.py --cats --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --check --kernel_size 16 --spr 0.5 --thr 0.1 --shotfive --patternstrict --widthtree 4 
+accelerate launch --main_process_port 29510 --num_processes 8 main.py --griffin --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --check --kernel_size 16 --spr 0.5 --thr 0.1 --shotfive --widthtree 4 
+accelerate launch --main_process_port 29510 --num_processes 8 main.py --cats --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --check --kernel_size 16 --spr 0.5 --thr 0.1 --shotfive --patternstrict --widthtree 6 
+accelerate launch --main_process_port 29510 --num_processes 8 main.py --griffin --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --check --kernel_size 16 --spr 0.5 --thr 0.1 --shotfive --widthtree 6 
+accelerate launch --main_process_port 29510 --num_processes 8 main.py --cats --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --check --kernel_size 16 --spr 0.5 --thr 0.1 --shotfive --patternstrict --widthtree 8 
+accelerate launch --main_process_port 29510 --num_processes 8 main.py --griffin --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --check --kernel_size 16 --spr 0.5 --thr 0.1 --shotfive --widthtree 8 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B --shotfive --cats 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B --shotfive --griffin 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --cats --check --kernel_size 16 --spr 0.5 --thr 0.1 --widthtree 1 
