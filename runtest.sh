@@ -25,10 +25,10 @@
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --griffin --check --kernel_size 14 --spr 0.5 --thr 0.1 --widthtree 1 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --griffin --check --kernel_size 14 --spr 0.5 --thr 0.1 --widthtree 4 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --griffin --check --kernel_size 12 --spr 0.5 --thr 0.1 --widthtree 1 
-treesizes=(4 6 8)
+treesizes=(1 4 6 8)
 for treesize in "${treesizes[@]}"
 do
-accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks csqa --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --griffin --check --kernel_size 16 --spr 0.5 --thr 0.05 --widthtree $treesize
+accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks csqa --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --cats --check --kernel_size 16 --spr 0.5 --thr 0.05 --widthtree $treesize
 done
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --griffin --check --kernel_size 12 --spr 0.5 --thr 0.1 --widthtree 8 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --griffin --check --kernel_size 12 --spr 0.5 --thr 0.05 --widthtree 1 
