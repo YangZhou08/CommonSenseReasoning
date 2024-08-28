@@ -32,10 +32,10 @@
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks csqa --model meta-llama/Meta-Llama-3-8B-Instruct --shotfive --cats --check --kernel_size 16 --spr 0.5 --thr 0.05 --widthtree $treesize
 # done
 
-accelerate launch --main_process_port 29501 --num_processes 4 main.py --tasks date --model meta-llama/Llama-2-13b-chat-hf --shotfive --griffin --check --kernel_size 16 --spr 0.5 --thr 0.1 --widthtree 4 
+# accelerate launch --main_process_port 29501 --num_processes 4 main.py --tasks date --model meta-llama/Llama-2-13b-chat-hf --shotfive --griffin --check --kernel_size 16 --spr 0.5 --thr 0.1 --widthtree 4 
 
-# accelerate launch --main_process_port 29501 --num_processes 4 main.py --tasks sports --model meta-llama/Llama-2-13b-chat-hf --shotfive --griffin --check --kernel_size 16 --spr 0.5 --thr 0.1  --widthtree 4 
-# accelerate launch --main_process_port 29501 --num_processes 4 main.py --tasks sports --model meta-llama/Llama-2-13b-chat-hf --shotfive --griffin --check --kernel_size 12 --spr 0.5 --thr 0.1  --widthtree 4 
+accelerate launch --main_process_port 29501 --num_processes 4 main.py --tasks sports --model meta-llama/Llama-2-13b-chat-hf --shotfive --griffin --check --kernel_size 16 --spr 0.5 --thr 0.1  --widthtree 4 
+accelerate launch --main_process_port 29501 --num_processes 4 main.py --tasks sports --model meta-llama/Llama-2-13b-chat-hf --shotfive --griffin --check --kernel_size 12 --spr 0.5 --thr 0.1  --widthtree 4 
 # accelerate launch --main_process_port 29501 --num_processes 4 main.py --tasks sports --model meta-llama/Llama-2-13b-chat-hf --shotfive --griffin --check --kernel_size 16 --spr 0.5 --thr 0.05  --widthtree 4 
 # accelerate launch --main_process_port 29501 --num_processes 4 main.py --tasks sports --model meta-llama/Llama-2-13b-chat-hf --shotfive --griffin --check --kernel_size 12 --spr 0.5 --thr 0.05  --widthtree 4 
 # accelerate launch --main_process_port 29501 --num_processes 8 main.py --tasks aqua --model meta-llama/Llama-2-7b-hf --shotfive --griffin --check --kernel_size 16 --spr 0.5 --thr 0.01 --widthtree 6 
